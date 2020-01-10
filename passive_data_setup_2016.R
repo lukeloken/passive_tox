@@ -43,21 +43,24 @@ chem_info = rename(chem_info, Chemical = Chemical.Name)
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
 
 sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
-  rename(SiteID = `CERC ID`,
-         site_no = `USGS Station ID`) %>%
+  rename(site_no = `USGS Station ID`) %>%
   mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
-  select(SiteID, `Short Name`, `site_no`)
+  select(`Short Name`, `site_no`)
   
 locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va")]
 names(locations) <- c("site_no", 'dec_lat', 'dec_long')
 
-sites_2016<-left_join(sites_2016, locations)
+sites_2016<-left_join(sites_2016, locations) %>%
+  rename(SiteID = site_no)
 
 
-tox_list <- list("Data" = WW_2016_forToxEval, 
-                 "Chemicals" = chem_info,
-                 "Sites" = sites_2016)
+# tox_list <- list("Data" = WW_2016_forToxEval, 
+#                  "Chemicals" = chem_info,
+#                  "Sites" = sites_2016)
                  
+tox_input_list <- list("Data" = WW_2016_forToxEval, 
+                 "Chemicals" = cas_df,
+                 "Sites" = sites_2016)
 
-saveOutput = openxlsx::write.xlsx(tox_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
+saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
 
