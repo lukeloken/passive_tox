@@ -28,6 +28,9 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
     convert <- 1000
   } else if (isTRUE(sum(grepl("ug/L", units)) == length(units))){
     convert <- 1
+  } else if (isTRUE(sum(grepl("/POCIS", units)) == length(units))){
+    convert <- 1
+    warning ("Units are per POCIS. Check input file")
   } else {
     stop("Check units!")
   }
@@ -91,7 +94,9 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   #Change some names to match CAS table
   data_long$chnm <- gsub(" \\{CIAT\\} \\(deethylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub(" \\{CEAT\\} \\(deisopropylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
-
+  data_long$chnm <- gsub(" \\{caat\\} \\(didealkylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub(" \\{eoat\\} \\(deisopropylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
+  
   data_long$chnm <- gsub("Tebupirimphos","Tebupirimfos",data_long$chnm, ignore.case = TRUE)
 
   
@@ -113,7 +118,8 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
     mutate(chnm = tolower(chnm)) %>%
     left_join(cas_df, by="chnm") %>%
     mutate(chnm = tools::toTitleCase(chnm)) %>%
-    left_join(select(site_stuff, SiteID, STAID, `Station shortname`), by="SiteID") 
+    left_join(select(site_stuff, SiteID, STAID, `Station shortname`), by="SiteID") %>%
+    drop_na(STAID)
   
   data_long$`Sample Date`[grepl(pattern = "Replicate",
                                 x = data_long$`Station shortname`)] <-  data_long$`Sample Date`[grepl(pattern = "Replicate",
@@ -131,6 +137,7 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   
   if(any(is.na(data_long$CAS))){
     message("Some CAS didn't match up")
+    print(unique(data_long$chnm[is.na(data_long$CAS)]))
   }
   
   # Get rid of censored data:
