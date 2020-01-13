@@ -19,7 +19,7 @@ dir.create(file.path("data","clean"), showWarnings = FALSE)
 # Go from raw files to R objects:
 source("R/analyze/data_reader_2016_Loken.R")
 # source("R/analyze/get_sites_ready.R")
-# source("R/analyze/get_chem_info.R")
+source("R/analyze/get_chem_info.R")
 # source("R/analyze/create_tox_file.R")
 
 
@@ -34,8 +34,18 @@ WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 PO
                               year = 2016,
                               skip_site = 2)
 
+AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
+                              sheet = "all data",
+                              n_max=300,
+                              site_sheet = "Site List",
+                              year = 2016,
+                              skip_site = 2)
+
+# average the two replicates for Saginow River Station
 WW_2016_forToxEval <- WW_2016 %>%
-  select(CAS, chnm, SiteID, Value, `Sample Date`)
+  select(CAS, chnm, SiteID, Value, `Sample Date`) %>%
+  group_by(SiteID,  chnm, CAS) %>%
+  summarize(Value = mean(Value), `Sample Date` = min(`Sample Date`))
 
 chem_info = read.csv(file_in(file.path(path_to_data, "Data/chemical_classes.csv")), stringsAsFactors = FALSE)
 chem_info = rename(chem_info, Chemical = Chemical.Name)
@@ -54,13 +64,16 @@ sites_2016<-left_join(sites_2016, locations) %>%
   rename(SiteID = site_no)
 
 
+exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv"))
+
 # tox_list <- list("Data" = WW_2016_forToxEval, 
 #                  "Chemicals" = chem_info,
 #                  "Sites" = sites_2016)
                  
 tox_input_list <- list("Data" = WW_2016_forToxEval, 
                  "Chemicals" = cas_df,
-                 "Sites" = sites_2016)
+                 "Sites" = sites_2016, 
+                 "Exclude" = exclude)
 
 saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
 
