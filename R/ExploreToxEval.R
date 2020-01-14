@@ -49,3 +49,4 @@ bio_plot <- plot_tox_boxplots(chemicalSummary,
                               title = 'Summing EARs for chemicals within a grouping of a sample, taking the max of each site',
                               plot_ND = TRUE)
 bio_plot
+ggsave(file_out(file.path(path_to_data, "Figures/Passive_by_Biogroup.png")), height=5, width=7)
