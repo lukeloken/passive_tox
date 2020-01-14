@@ -70,10 +70,12 @@ WW_2016_forToxEval <- WW_2016 %>%
 sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
   rename(site_no = `USGS Station ID`) %>%
   # mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
-  select(`Short Name`, `site_no`)
+  select(`Short Name`, `site_no`, Lake)
   
-locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va")]
-names(locations) <- c("site_no", 'dec_lat', 'dec_long')
+locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va", 'station_nm')]
+names(locations) <- c("site_no", 'dec_lat', 'dec_long', 'site_grouping')
+locations$site_grouping <- str_sub(locations$site_grouping,-2,-1)
+
 
 sites_2016<-left_join(sites_2016, locations) %>%
   rename(SiteID = site_no) %>%
