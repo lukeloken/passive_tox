@@ -35,13 +35,30 @@ EAR_table <- EAR_max %>%
   summarize (n = n()) %>%
   left_join(unique(chemicalSummary[c("chnm", "Class")])) %>%
   dplyr::arrange(Class, desc(Group), -n)
-  
+
+
 chem_order <- unique(EAR_table$chnm)
 
 EAR_max <- EAR_max %>%
   group_by() %>%
   mutate(chnm = factor(chnm, chem_order)) %>%
   dplyr::arrange(chnm, Group)
+
+#Ordering for sites
+Site_table <- EAR_max %>%
+  group_by(site, Group) %>%
+  summarize(n=n()) %>%
+  dplyr::arrange(desc(Group), desc(n))
+
+# site_order <- unique(Site_table$site)
+site_order <- unique(chemicalSummary$shortName)
+
+EAR_site <- EAR_max %>%
+  left_join(unique(chemicalSummary[c("site", "shortName", "Lake")])) %>%
+  group_by() %>%
+  mutate(shortName = factor(shortName, site_order)) %>%
+  dplyr::arrange(site) %>%
+  mutate(Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")))
 
 
 
@@ -137,4 +154,38 @@ chemicalbyEAR_byClass <- ggplot(data=EAR_max, aes(x=chnm, fill=Group)) +
 
 
 ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_3Classes.png")), plot = chemicalbyEAR_byClass, height=4, width=6)
+
+
+EAR_max_sortedbyChem <- EAR_max %>%
+  group_by() %>%
+  arrange()
+
+#Playing with grouping by site. 
+chemicalbyEAR_bysite <- ggplot(data=EAR_site, aes(x=shortName, fill=Group)) + 
+  geom_bar(color = 'grey', width=.8, size=.1) + 
+  # geom_bar(position = "dodge") +
+  facet_grid(~Lake, space="free", scales="free") +
+  labs(x='Chemical', y='Number of chemicals', fill = 'EAR') + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=.5),
+        axis.title.x=element_blank()) + 
+  scale_fill_brewer(palette = "YlOrRd") +
+  scale_y_continuous(limits=c(0,28), expand=c(0,0)) + 
+  theme(legend.position = 'bottom') +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+
+print(chemicalbyEAR_bysite)
+
+ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_BySite.png")), plot = chemicalbyEAR_bysite, height=4, width=5)
+
+#Map figure
+
+
+make_tox_map(chemicalSummary, 
+             chem_site = tox_list$chem_site,
+             category = 'Chemical Class',
+             mean_logic = FALSE)
   
