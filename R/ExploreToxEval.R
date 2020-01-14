@@ -2,7 +2,7 @@
 
 
 tox_list<- create_toxEval(file_in(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
-
+tox_list$chem_site$site_grouping <- factor(tox_list$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 ACClong <- get_ACC(tox_list$chem_info$CAS)
 ACClong <- remove_flags(ACClong)
 
@@ -15,7 +15,17 @@ chemicalSummary <- get_chemical_summary(tox_list,
                                         ACClong, 
                                         filtered_ep)
 
+chemicalSummary <- tox_list$chem_site %>%
+  rename(site = SiteID,
+         shortName = `Short Name`) %>% 
+  right_join(chemicalSummary)
+
 chemicalSummary
+
+
+
+
+
 
 chem_class_plot <- plot_tox_boxplots(chemicalSummary,
                                      category = 'Chemical Class')
