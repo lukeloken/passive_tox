@@ -1,6 +1,5 @@
 
-
-
+#Select data
 tox_list<- create_toxEval(file_in(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
 tox_list$chem_site$site_grouping <- factor(tox_list$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 ACClong <- get_ACC(tox_list$chem_info$CAS)
@@ -23,8 +22,33 @@ chemicalSummary <- tox_list$chem_site %>%
 chemicalSummary
 
 
+#all pocis data
+tox_list_allpocis<- create_toxEval(file_in(file.path(path_to_data, "Data/PassiveForToxEval_AllPocis.xlsx")))
+tox_list_allpocis$chem_site$site_grouping <- factor(tox_list_allpocis$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
+ACClong_allpocis <- get_ACC(tox_list_allpocis$chem_info$CAS)
+ACClong_allpocis <- remove_flags(ACClong_allpocis)
+
+chemicalSummary_allpocis <- get_chemical_summary(tox_list_allpocis, 
+                                        ACClong, 
+                                        filtered_ep)
+
+chemicalSummary_allpocis <- tox_list_allpocis$chem_site %>%
+  rename(site = SiteID,
+         shortName = `Short Name`) %>% 
+  right_join(chemicalSummary_allpocis)
+
+chemicalSummary_allpocis
 
 
+
+
+
+
+
+
+
+
+#Standard plots from ToxEval
 
 
 chem_class_plot <- plot_tox_boxplots(chemicalSummary,
@@ -60,3 +84,7 @@ bio_plot <- plot_tox_boxplots(chemicalSummary,
                               plot_ND = TRUE)
 bio_plot
 ggsave(file_out(file.path(path_to_data, "Figures/Passive_by_Biogroup.png")), height=5, width=7)
+
+
+
+
