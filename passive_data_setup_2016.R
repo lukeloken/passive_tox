@@ -27,23 +27,37 @@ cas_df <- read.csv(file_in(file.path(path_to_data, 'Data/Pesticides_2016_monitor
   rename(chnm = Chemical.Name) %>%
   mutate(chnm = tolower(chnm))
 
-cas_df_new <- read_excel(file_in(file.path(path_to_data, 'Data/pesticide CAS numbers.xlsx'))) %>%
-  rename(chnm = `Parameter Name`,
-         CAS = `CAS Number`, 
-         ParaCode = `Parameter Code`) %>%
-  mutate(chnm = tolower(chnm))
+# cas_df_new <- read_excel(file_in(file.path(path_to_data, 'Data/pesticide CAS numbers.xlsx'))) %>%
+  # rename(chnm = `Parameter Name`,
+  #        CAS = `CAS Number`, 
+  #        ParaCode = `Parameter Code`) %>%
+  # mutate(chnm = tolower(chnm)) 
 
-#Currently not usin this one. 
+# match_yes<-length(intersect(cas_df$chnm, cas_df_new$chnm))
+# match_no <- length(unique(setdiff( cas_df_new$chnm, cas_df$chnm), setdiff( cas_df$chnm,  cas_df_new$chnm)))
+
+
 #Find single list of chemicals to use
-chem_info = read.csv(file_in(file.path(path_to_data, "Data/chemical_classes.csv")), stringsAsFactors = FALSE)
-chem_info = rename(chem_info, Chemical = Chemical.Name)
-
-
-setdiff(cas_df$chnm, cas_df_new$chnm)
-setdiff( cas_df_new$chnm, cas_df$chnm)
+# chem_info = read.csv(file_in(file.path(path_to_data, "Data/chemical_classes.csv")), stringsAsFactors = FALSE)
+# chem_info = rename(chem_info, chnm = Chemical.Name)
+# 
+# chem_info2 = read.csv(file_in(file.path(path_to_data, "Data/chemical_classes2.csv")), stringsAsFactors = FALSE)
+# chem_info = rename(chem_info, chnm = Chemical.Name)
+# 
+# cas_df_combine <- full_join(cas_df, cas_df_new) %>%
+#   select(-ParaCode, -M) 
+  # full_join(chem_info) %>%
+  # full_join(chem_info2)
 
 
 #Load pesticide data
+# # WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df_combine, 
+#                               sheet = "select data",
+#                               n_max=60,
+#                               site_sheet = "Site List",
+#                               year = 2016,
+#                               skip_site = 2)
+
 WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
                               sheet = "select data",
                               n_max=60,
@@ -51,15 +65,29 @@ WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 PO
                               year = 2016,
                               skip_site = 2)
 
+# AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
+                              # sheet = "all data",
+                              # n_max=300,
+                              # site_sheet = "Site List",
+                              # year = 2016,
+                              # skip_site = 2)
+
+#testing extra CAS files
 AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
-                              sheet = "all data",
-                              n_max=300,
-                              site_sheet = "Site List",
-                              year = 2016,
-                              skip_site = 2)
+                                    sheet = "all data",
+                                    n_max=300,
+                                    site_sheet = "Site List",
+                                    year = 2016,
+                                    skip_site = 2)
 
 # average the two replicates for Saginow River Station
 WW_2016_forToxEval <- WW_2016 %>%
+  select(CAS, chnm, SiteID, Value, `Sample Date`) %>%
+  group_by(SiteID,  chnm, CAS) %>%
+  summarize(Value = mean(Value), `Sample Date` = min(`Sample Date`))
+
+
+AllPOCIS_forToxEval <- AllPOCIS_2016 %>%
   select(CAS, chnm, SiteID, Value, `Sample Date`) %>%
   group_by(SiteID,  chnm, CAS) %>%
   summarize(Value = mean(Value), `Sample Date` = min(`Sample Date`))
@@ -94,5 +122,13 @@ tox_input_list <- list("Data" = WW_2016_forToxEval,
                  "Sites" = sites_2016, 
                  "Exclude" = exclude)
 
+allpocis_input_list <- list("Data" = AllPOCIS_forToxEval, 
+                       "Chemicals" = cas_df,
+                       "Sites" = sites_2016, 
+                       "Exclude" = exclude)
+
 saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
+
+
+saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval_AllPocis.xlsx")))
 
