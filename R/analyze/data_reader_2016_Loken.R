@@ -71,11 +71,13 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$comment <- ""
   data_long$comment[grep("<",data_long$Value)] <- "<"
   data_long$comment[grep("DNQ",data_long$Value)] <- "DNQ"
+  data_long$comment[grep("E",data_long$Value)] <- "Est"
   data_long$Value <- gsub("DNQ","",data_long$Value)
   data_long$Value <- gsub("<","",data_long$Value)
   data_long$Value <- gsub("a","",data_long$Value)
   data_long$Value <- gsub("b","",data_long$Value)
   data_long$Value <- gsub("c","",data_long$Value)
+  data_long$Value <- gsub("E","",data_long$Value)
   data_long$Value <- gsub(" ","",data_long$Value)
   data_long <- data_long[data_long$Value != "lostinfield",]
   data_long <- data_long[data_long$Value != "-----",]
@@ -86,6 +88,10 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long <- filter(data_long, Value != "NA")
   
   data_long$Value <- as.numeric(data_long$Value) 
+  
+  #For value below minimum detection, set value to zero
+  data_long$Value[which(data_long$Value - data_long$MDL <= 0)] = 0
+  
   data_long$Value <- data_long$Value/convert
   data_long$generic_class <- 'pesticide'
   data_long$`Sample Date` <- year
@@ -94,11 +100,12 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   #Change some names to match CAS table
   data_long$chnm <- gsub(" \\{CIAT\\} \\(deethylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub(" \\{CEAT\\} \\(deisopropylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
-  data_long$chnm <- gsub(" \\{caat\\} \\(didealkylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub("  \\{caat\\} \\(didealkylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub(" \\{eoat\\} \\(deisopropylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   
   data_long$chnm <- gsub("Tebupirimphos","Tebupirimfos",data_long$chnm, ignore.case = TRUE)
-
+  data_long$chnm <- gsub(" Tp ","Transformation Product",data_long$chnm, ignore.case = TRUE)
+  
   
   
   # Premature taking out censored values?
@@ -141,7 +148,7 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   }
   
   # Get rid of censored data:
-  data_long$Value[data_long$comment != ""] <- 0
+  data_long$Value[-which(data_long$comment %in% c("", "Est"))] <- 0
   
   data_long$SiteID[data_long$SiteID == "04085790"] <- "04085721"
   
