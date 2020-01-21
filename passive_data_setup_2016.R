@@ -7,7 +7,7 @@ library(toxEval)
 library(openxlsx)
 library(dataRetrieval)
 
-path_to_data <- Sys.getenv("PASSIVE_PATH")
+# path_to_data <- Sys.getenv("PASSIVE_PATH")
 
 options(drake_make_menu = FALSE)
 
