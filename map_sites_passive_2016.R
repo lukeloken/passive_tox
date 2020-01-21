@@ -19,8 +19,8 @@ nchems <- site_detection %>%
 
 graphData <- site_detection %>%
   filter(group=='AboveEAR0.001') %>%
-  group_by(site) %>%
-  select(site, value) %>%
+  dplyr::group_by(site) %>%
+  dplyr::select(site, value) %>%
   rename(EAR = value) %>%
   left_join(nchems) %>%
   data.frame()
@@ -111,17 +111,17 @@ getBasin <- function(sites, filePath = NA){
 }
 
 
-getLakes <- function(){
-  shapefile_loc <- "http://geo.glin.net/gis/shps/glin_gl_mainlakes.zip"
-  
-  destination = file.path(tempdir(),"glin_gl_mainlakes.zip")
-  file <- GET(shapefile_loc, write_disk(destination, overwrite=T))
-  filePath <- tempdir()
-  unzip(destination, exdir = filePath)
-  
-  lakes <- st_read(filePath, layer = "gl_mainlakes")
-  return(lakes)
-}
+# getLakes <- function(){
+#   shapefile_loc <- "http://geo.glin.net/gis/shps/glin_gl_mainlakes.zip"
+#   
+#   destination = file.path(tempdir(),"glin_gl_mainlakes.zip")
+#   file <- GET(shapefile_loc, write_disk(destination, overwrite=T))
+#   filePath <- tempdir()
+#   unzip(destination, exdir = filePath)
+#   
+#   lakes <- st_read(filePath, layer = "gl_mainlakes")
+#   return(lakes)
+# }
 
 mapRange <- c(-93.298145, -74.816895,40.937378, 48.058570 )
 streamorder <- 5
@@ -131,15 +131,24 @@ crs_plot <- st_crs(102003)
 #basins <- getBasin(sites$site_no)
 filePath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20131299_GLRI_MASTER/~old/201401_HUC12Basins"
 
-basins = st_read(filePath, layer='GLRI_Basins_HUC12Linework')
-basins <- st_transform(basins, crs = crsLONGLAT) %>%
-  filter(STAID %in% sites$site_no)
+# basins = st_read(filePath, layer='GLRI_Basins_HUC12Linework')
+# basins <- st_transform(basins, crs = crsLONGLAT) %>%
+#   dplyr::filter(STAID %in% sites$site_no)
+# basins <- basins %>%
+#   left_join(sites, by = c("STAID" = "site_no"))
+
+basins_OGR <- readRDS( file_in(file.path(path_to_data, "Rdata/watershedmetrics.rds")))
+basins <- st_as_sf(basins_OGR) %>%
+  st_transform(crs=crsLONGLAT) %>%
+  dplyr::filter(STAID %in% sites$site_no)
 basins <- basins %>%
   left_join(sites, by = c("STAID" = "site_no"))
 
 
 flowlines <- get_flowlines(streamorder, mapRange)
-lakes <- getLakes()
+
+lakespath <- "C:/Users/lloken/OneDrive - DOI/GIS/Great_Lakes"
+lakes <- st_read(lakespath, layer="Great_Lakes")
 
 # set the state and county names of interest
 state_names <- c("minnesota","wisconsin", "michigan","ohio",
@@ -206,43 +215,50 @@ minneapolis <- st_transform(minneapolis, crs = crs_plot)
 #base_map <- 
   
 first_pass <- ggplot() + 
-  # geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
-  geom_sf(data = basins, alpha = 0.5, aes(fill = 'brown')) +
+  geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg2`*100)) +
+  # geom_sf(data = basins, alpha = 0.5, aes(fill = 'brown')) +
   # scale_fill_gradient(low = '#f5f5f5', high = '#543005', name = "% Agriculture") +
+  scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Agriculture") +
+  # scale_fill_brewer(palette = "Greens", name= "% Agriculture") +
   geom_sf(data = flowlines, color = "lightblue") +
   geom_sf(data = GL, color = "gray50", fill=NA) +
   geom_sf(data = sites_proj, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
+  geom_sf(data = sites_proj, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
 
-  scale_size(range = c(2,14), breaks = c(5,10,15,20, 25, 30, 35), guide = 'legend') +
+  scale_size(range = c(4,10), breaks = c(10,20,30), guide = 'legend') +
   scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
                        guide = 'colourbar') +
 
-  geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
-  geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
+  # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
+  # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
   coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"],b["xmax"]), 
-           ylim = c(b["ymin"],b["ymax"])) +
+           xlim = c(b["xmin"]+1000,b["xmax"]+10000), 
+           ylim = c(b["ymin"],b["ymax"]-100000)) +
   theme_minimal() +
-  theme(panel.grid.major = element_line(colour = 'transparent'), #Bug that's apparently getting fixed
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        axis.text = element_blank(),
-        axis.title = element_blank(), 
-        #legend.position = c(.75, .75),
+  theme(panel.grid.minor = element_blank(),
+        # panel.border = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+        # panel.background = element_blank(),
+        axis.text = element_text(),
+        axis.title = element_blank(),
+        axis.ticks = element_line(), 
+        legend.position = 'bottom',
         legend.direction = 'horizontal') +
   guides(fill = guide_colourbar(title.position = 'top')) +
   geom_point(alpha = 0, shape = 16,
-             aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), size = sites_proj$nUniqueChems, color = sites_proj$nChem)) +
+             aes(x = rep(214731.983109861, 15), y = rep(838589.951769598, 15), size = sites_proj$chemicals, color = sites_proj$EAR)) +
   guides(size = guide_legend(label.position = 'bottom', label.hjust = 0.5,  
                              title = '# Chemicals Detected', title.position = 'top', 
                              override.aes = list(alpha = 1, stroke = 2), order = 2), 
          fill = guide_colourbar(title.position = 'top', order = 1), 
          color = guide_colorbar(title.position = 'top', order = 3, 
                                 title = '# Chemicals with\nEAR > 0.001')) +
-  theme(legend.box = "vertical")
+  theme(legend.box = "horizontal") 
 
 first_pass
+
+ggsave(first_pass, filename = file_out(file.path(path_to_data, "Figures/site_map_nchems.png")), height = 6.5, width = 8)  
 
 #Working above here
 #Need to get lakes and watershed %ag data
@@ -253,8 +269,8 @@ base_p <- ggplot() +
   geom_sf(data = flowlines, color = "lightblue") +
   geom_sf(data = GL, color = "gray50", fill=NA) +
   
-  geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
-  geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
+  # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
+  # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
 
   theme_minimal() +
   theme(panel.grid.major = element_line(colour = 'transparent'), #Bug that's apparently getting fixed
@@ -266,125 +282,125 @@ base_p <- ggplot() +
         legend.position = c(.75, .75),
         legend.direction = 'horizontal')
 # add stuff
-metolachlor_p <- base_p + 
-  geom_sf(data = basins, alpha = 0.5, aes(fill = `Ag..total`)) +
-  scale_fill_gradient(low = '#f5f5f5', high = '#543005', name = "% Agriculture") +
-  geom_sf(data = sites_proj, alpha = 0.8, shape = 21, stroke = 2, aes(size = maxsumEAR_metolachlor), col = 'red', show.legend = FALSE) +
-  
-  scale_size(range = c(2,20), guide = 'legend', breaks = c(0.001, 0.01, 0.1, 1), 
-             labels = c(0.001, 0.01, 0.1, 1)) +
-  #scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
-  #                    guide = 'colourbar') +
-  coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"],b["xmax"]), 
-           ylim = c(b["ymin"],b["ymax"])) +
-  geom_point(alpha = 0, shape = 21, col = 'red', 
-             aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), size = sites_proj$maxsumEAR_metolachlor)) +
-  guides(size = guide_legend(label.position = 'bottom', label.hjust = 0.5,  
-                             title = 'max EAR', title.position = 'top', 
-                             override.aes = list(alpha = 1, stroke = 2)), 
-         fill = guide_colourbar(title.position = 'top')) +
-  theme(legend.box = "horizontal")
-
-  
-
-
-fipronil_p <- base_p +
-  geom_sf(data = basins, alpha = 0.8, aes(fill = Urban)) +
-  scale_fill_gradient(low = '#f7f7f7', high = "#40004b", name = "% Urban") +
-  geom_sf(data = sites_proj, alpha = 0.8, shape = 21, stroke = 2, aes(size = maxsumEAR_fipronil, col = fipronil_detected), show.legend = FALSE) +
-  scale_size(range = c(2,20), breaks = c(0, 0.001, 0.01), labels = c(0, 0.001, 0.01)) +
-  scale_color_manual(values = c('black', 'red')) +
-  coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"],b["xmax"]), 
-           ylim = c(b["ymin"],b["ymax"]))  +
-  geom_point(alpha = 0, shape = 21, col = 'red', 
-             aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), size = sites_proj$maxsumEAR_fipronil)) +
-  guides(size = guide_legend(label.position = 'bottom', label.hjust = 0.5, order = 2,  
-                             title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1, stroke = 2, color = c('black', 'red', 'red'))), 
-         fill = guide_colorbar(order = 1, title.position = 'top')) +
-  theme(legend.box = "horizontal")
-
-NR1I2_p <- base_p +
-  geom_sf(data = basins, alpha = 0.8, fill = 'lightgray') +
-  geom_sf(data = sites_proj, alpha = 0.8, shape = 16, 
-          aes(size = NR_maxsumEAR, color = NR_top_chem), show.legend = FALSE) +
-  scale_size(range = c(2,20), breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c(0.0001, 0.001, 0.01, 0.1)) +
-  coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"],b["xmax"]), 
-           ylim = c(b["ymin"],b["ymax"]))  +
-  geom_point(alpha = 0, shape = 16, 
-             aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), 
-                 size = sites_proj$NR_maxsumEAR, color = sites_proj$NR_top_chem)) +
-  guides(size = guide_legend(label.position = 'right', label.hjust = 0.5, order = 1,  
-                             title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1)), 
-         color = guide_legend(order = 2, title.position = 'top', 
-                              override.aes = list(alpha = 1, size=8),
-                              title = 'Top Contributor', ncol = 2)) +
-  theme(legend.box = "horizontal", 
-        legend.direction = 'vertical')
-
-# add column if chem leading to PTGS2 was detected at any given site based on NA vals
-sites_proj <- mutate(sites_proj, chemto_PTGS2_detected = ifelse(is.na(PT_maxsumEAR), 'NO', 'YES'))
-# now set NA values to zero
-sites_proj <- mutate(sites_proj, PT_maxsumEAR = ifelse(is.na(PT_maxsumEAR), 0, PT_maxsumEAR))
-sites_proj$PT_top_chem[is.na(sites_proj$PT_top_chem)] <- "No Chemicals"
-
-PTGS2_p <- base_p +
-  geom_sf(data = basins, alpha = 0.8, fill = 'lightgray') +
-  geom_sf(data = sites_proj, alpha = 0.8, shape = 16, 
-          aes(size = PT_maxsumEAR, color = PT_top_chem), show.legend = FALSE) +
-  scale_size(range = c(2,20), breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c(0.0001, 0.001, 0.01, 0.1)) +
-  coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"],b["xmax"]), 
-           ylim = c(b["ymin"],b["ymax"]))  +
-  geom_point(alpha = 0, shape = 16, 
-             aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), 
-                 size = sites_proj$PT_maxsumEAR, color = sites_proj$PT_top_chem)) +
-  guides(size = guide_legend(label.position = 'right', label.hjust = 0.5, order = 1,  
-                             title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1)), 
-         color = guide_legend(order = 2, title.position = 'top', 
-                              override.aes = list(alpha = 1, size=8),
-                              title = 'Top Contributor', ncol = 1)) +
-  theme(legend.box = "horizontal", 
-        legend.direction = 'vertical')
+# metolachlor_p <- base_p +
+#   geom_sf(data = basins, alpha = 0.5, aes(fill = `Ag..total`)) +
+#   scale_fill_gradient(low = '#f5f5f5', high = '#543005', name = "% Agriculture") +
+#   geom_sf(data = sites_proj, alpha = 0.8, shape = 21, stroke = 2, aes(size = maxsumEAR_metolachlor), col = 'red', show.legend = FALSE) +
+#   
+#   scale_size(range = c(2,20), guide = 'legend', breaks = c(0.001, 0.01, 0.1, 1), 
+#              labels = c(0.001, 0.01, 0.1, 1)) +
+#   #scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
+#   #                    guide = 'colourbar') +
+#   coord_sf(crs = crs_plot,
+#            xlim = c(b["xmin"],b["xmax"]), 
+#            ylim = c(b["ymin"],b["ymax"])) +
+#   geom_point(alpha = 0, shape = 21, col = 'red', 
+#              aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), size = sites_proj$maxsumEAR_metolachlor)) +
+#   guides(size = guide_legend(label.position = 'bottom', label.hjust = 0.5,  
+#                              title = 'max EAR', title.position = 'top', 
+#                              override.aes = list(alpha = 1, stroke = 2)), 
+#          fill = guide_colourbar(title.position = 'top')) +
+#   theme(legend.box = "horizontal")
+# 
+#   
+# 
+# 
+# fipronil_p <- base_p +
+#   geom_sf(data = basins, alpha = 0.8, aes(fill = Urban)) +
+#   scale_fill_gradient(low = '#f7f7f7', high = "#40004b", name = "% Urban") +
+#   geom_sf(data = sites_proj, alpha = 0.8, shape = 21, stroke = 2, aes(size = maxsumEAR_fipronil, col = fipronil_detected), show.legend = FALSE) +
+#   scale_size(range = c(2,20), breaks = c(0, 0.001, 0.01), labels = c(0, 0.001, 0.01)) +
+#   scale_color_manual(values = c('black', 'red')) +
+#   coord_sf(crs = crs_plot,
+#            xlim = c(b["xmin"],b["xmax"]), 
+#            ylim = c(b["ymin"],b["ymax"]))  +
+#   geom_point(alpha = 0, shape = 21, col = 'red', 
+#              aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), size = sites_proj$maxsumEAR_fipronil)) +
+#   guides(size = guide_legend(label.position = 'bottom', label.hjust = 0.5, order = 2,  
+#                              title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1, stroke = 2, color = c('black', 'red', 'red'))), 
+#          fill = guide_colorbar(order = 1, title.position = 'top')) +
+#   theme(legend.box = "horizontal")
+# 
+# NR1I2_p <- base_p +
+#   geom_sf(data = basins, alpha = 0.8, fill = 'lightgray') +
+#   geom_sf(data = sites_proj, alpha = 0.8, shape = 16, 
+#           aes(size = NR_maxsumEAR, color = NR_top_chem), show.legend = FALSE) +
+#   scale_size(range = c(2,20), breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c(0.0001, 0.001, 0.01, 0.1)) +
+#   coord_sf(crs = crs_plot,
+#            xlim = c(b["xmin"],b["xmax"]), 
+#            ylim = c(b["ymin"],b["ymax"]))  +
+#   geom_point(alpha = 0, shape = 16, 
+#              aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), 
+#                  size = sites_proj$NR_maxsumEAR, color = sites_proj$NR_top_chem)) +
+#   guides(size = guide_legend(label.position = 'right', label.hjust = 0.5, order = 1,  
+#                              title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1)), 
+#          color = guide_legend(order = 2, title.position = 'top', 
+#                               override.aes = list(alpha = 1, size=8),
+#                               title = 'Top Contributor', ncol = 2)) +
+#   theme(legend.box = "horizontal", 
+#         legend.direction = 'vertical')
 
 # add column if chem leading to PTGS2 was detected at any given site based on NA vals
 # sites_proj <- mutate(sites_proj, chemto_PTGS2_detected = ifelse(is.na(PT_maxsumEAR), 'NO', 'YES'))
-# now set NA values to zero
-sites_proj <- mutate(sites_proj, TP_maxsumEAR = ifelse(is.na(TP_maxsumEAR), 0, TP_maxsumEAR))
-sites_proj$TP_top_chem[is.na(sites_proj$TP_top_chem)] <- "No Chemicals"
+# # now set NA values to zero
+# sites_proj <- mutate(sites_proj, PT_maxsumEAR = ifelse(is.na(PT_maxsumEAR), 0, PT_maxsumEAR))
+# sites_proj$PT_top_chem[is.na(sites_proj$PT_top_chem)] <- "No Chemicals"
+# 
+# PTGS2_p <- base_p +
+#   geom_sf(data = basins, alpha = 0.8, fill = 'lightgray') +
+#   geom_sf(data = sites_proj, alpha = 0.8, shape = 16, 
+#           aes(size = PT_maxsumEAR, color = PT_top_chem), show.legend = FALSE) +
+#   scale_size(range = c(2,20), breaks = c(0.0001, 0.001, 0.01, 0.1), labels = c(0.0001, 0.001, 0.01, 0.1)) +
+#   coord_sf(crs = crs_plot,
+#            xlim = c(b["xmin"],b["xmax"]), 
+#            ylim = c(b["ymin"],b["ymax"]))  +
+#   geom_point(alpha = 0, shape = 16, 
+#              aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), 
+#                  size = sites_proj$PT_maxsumEAR, color = sites_proj$PT_top_chem)) +
+#   guides(size = guide_legend(label.position = 'right', label.hjust = 0.5, order = 1,  
+#                              title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1)), 
+#          color = guide_legend(order = 2, title.position = 'top', 
+#                               override.aes = list(alpha = 1, size=8),
+#                               title = 'Top Contributor', ncol = 1)) +
+#   theme(legend.box = "horizontal", 
+#         legend.direction = 'vertical')
+# 
+# # add column if chem leading to PTGS2 was detected at any given site based on NA vals
+# # sites_proj <- mutate(sites_proj, chemto_PTGS2_detected = ifelse(is.na(PT_maxsumEAR), 'NO', 'YES'))
+# # now set NA values to zero
+# sites_proj <- mutate(sites_proj, TP_maxsumEAR = ifelse(is.na(TP_maxsumEAR), 0, TP_maxsumEAR))
+# sites_proj$TP_top_chem[is.na(sites_proj$TP_top_chem)] <- "No Chemicals"
+# 
+# TP53_p <- base_p +
+#   geom_sf(data = basins, alpha = 0.8, fill = 'lightgray') +
+#   geom_sf(data = sites_proj, alpha = 0.8, shape = 16, 
+#           aes(size = TP_maxsumEAR, color = TP_top_chem), show.legend = FALSE) +
+#   scale_size(range = c(2,20), breaks = c(0.001, 0.01, 0.1, 1), labels = c(0.001, 0.01, 0.1, 1)) +
+#   coord_sf(crs = crs_plot,
+#            xlim = c(b["xmin"],b["xmax"]), 
+#            ylim = c(b["ymin"],b["ymax"]))  +
+#   geom_point(alpha = 0, shape = 16, 
+#              aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), 
+#                  size = sites_proj$TP_maxsumEAR, color = sites_proj$TP_top_chem)) +
+#   guides(size = guide_legend(label.position = 'right', label.hjust = 0.5, order = 1,  
+#                              title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1)), 
+#          color = guide_legend(order = 2, title.position = 'top', 
+#                               override.aes = list(alpha = 1, size=8),
+#                               title = 'Top Contributor', ncol = 1)) +
+#   theme(legend.box = "horizontal", 
+#         legend.direction = 'vertical')
+#   
+# 
+#   
+#   
 
-TP53_p <- base_p +
-  geom_sf(data = basins, alpha = 0.8, fill = 'lightgray') +
-  geom_sf(data = sites_proj, alpha = 0.8, shape = 16, 
-          aes(size = TP_maxsumEAR, color = TP_top_chem), show.legend = FALSE) +
-  scale_size(range = c(2,20), breaks = c(0.001, 0.01, 0.1, 1), labels = c(0.001, 0.01, 0.1, 1)) +
-  coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"],b["xmax"]), 
-           ylim = c(b["ymin"],b["ymax"]))  +
-  geom_point(alpha = 0, shape = 16, 
-             aes(x = rep(214731.983109861, 16), y = rep(838589.951769598, 16), 
-                 size = sites_proj$TP_maxsumEAR, color = sites_proj$TP_top_chem)) +
-  guides(size = guide_legend(label.position = 'right', label.hjust = 0.5, order = 1,  
-                             title = 'max EAR', title.position = 'top', override.aes = list(alpha = 1)), 
-         color = guide_legend(order = 2, title.position = 'top', 
-                              override.aes = list(alpha = 1, size=8),
-                              title = 'Top Contributor', ncol = 1)) +
-  theme(legend.box = "horizontal", 
-        legend.direction = 'vertical')
-  
 
+# base_map
   
-  
-
-
-base_map
-  
-ggsave(first_pass, filename = "site_map_nchems.png", height = 6, width = 8)  
-ggsave(metolachlor_p, filename = "site_map_metolachlor_nolog.png", height = 6, width = 8)  
-ggsave(fipronil_p, filename = "site_map_fipronil_nolog.png", height = 6, width = 8)  
-ggsave(NR1I2_p, filename = "site_map_NR1I2_nolog.png", height = 8, width = 10.5)  
-ggsave(PTGS2_p, filename = "site_map_PTGS2_nolog.png", height = 8, width = 10.5)  
-ggsave(TP53_p, filename = "site_map_TP53_nolog.png", height = 8, width = 10.5)  
+# ggsave(first_pass, filename = file_out(file.path(path_to_data, "Figures/site_map_nchems.png")), height = 6, width = 8)  
+# ggsave(metolachlor_p, filename = "site_map_metolachlor_nolog.png", height = 6, width = 8)  
+# ggsave(fipronil_p, filename = "site_map_fipronil_nolog.png", height = 6, width = 8)  
+# ggsave(NR1I2_p, filename = "site_map_NR1I2_nolog.png", height = 8, width = 10.5)  
+# ggsave(PTGS2_p, filename = "site_map_PTGS2_nolog.png", height = 8, width = 10.5)  
+# ggsave(TP53_p, filename = "site_map_TP53_nolog.png", height = 8, width = 10.5)  
 
