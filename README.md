@@ -7,7 +7,6 @@ Rather than usin `drake`, I have been mapping data and outputs using a single ch
 ```
 path_to_data <- c('C:/Users/lloken/OneDrive - DOI/GLRI_Pesticides')
 
-
 ```
 
 Then I call a handful of smaller scripts usin `source` to process the data and generate figures. 
