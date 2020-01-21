@@ -131,13 +131,12 @@ for (watershed_i in 1:length(basins_OGR)){
   
 }
 
-basins_OGR@data$perWater2 <- unlist(basins_OGR@data$perWater)
-basins_OGR@data$perForest2 <- unlist(basins_OGR@data$perForest)
-basins_OGR@data$perWetlan2 <- unlist(basins_OGR@data$perWetland)
-basins_OGR@data$perAg2 <- unlist(basins_OGR@data$perAg)
-basins_OGR@data$perUrban2 <- unlist(basins_OGR@data$perUrban)
-basins_OGR@data$perOther2 <- unlist(basins_OGR@data$perOther)
-
+basins_OGR@data$perWater <- unlist(basins_OGR@data$perWater)
+basins_OGR@data$perForest <- unlist(basins_OGR@data$perForest)
+basins_OGR@data$perWetlan <- unlist(basins_OGR@data$perWetland)
+basins_OGR@data$perAg <- unlist(basins_OGR@data$perAg)
+basins_OGR@data$perUrban <- unlist(basins_OGR@data$perUrban)
+basins_OGR@data$perOther <- unlist(basins_OGR@data$perOther)
 
 
 saveRDS(basins_OGR, file_out(file.path(path_to_data, "Rdata/watershedmetrics.rds")))
