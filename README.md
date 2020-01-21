@@ -1,4 +1,4 @@
-# Passive Sampler analysis
+# Passive sampler analysis
 
 ## Fork by Luke Loken
 
