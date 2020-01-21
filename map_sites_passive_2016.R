@@ -8,6 +8,7 @@ library(dplyr)
 library(remake)
 library(sf)
 library(USAboundaries)
+library(ggsn)
 
 sites <- sites_2016 %>%
   rename(site_no = SiteID)
@@ -129,7 +130,7 @@ crsLONGLAT <- 4326
 crs_plot <- st_crs(102003)
 
 #basins <- getBasin(sites$site_no)
-filePath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20131299_GLRI_MASTER/~old/201401_HUC12Basins"
+# filePath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20131299_GLRI_MASTER/~old/201401_HUC12Basins"
 
 # basins = st_read(filePath, layer='GLRI_Basins_HUC12Linework')
 # basins <- st_transform(basins, crs = crsLONGLAT) %>%
@@ -190,20 +191,21 @@ b <- st_bbox(bb_proj)
 # names(TP53) <- c('site', 'TP_top_chem', 'TP_maxsumEAR', 'TP_max_nchems')
 # 
 
-sites <- left_join(sites, graphData, by = c('site_no' = 'site'))
+sites <- left_join(sites, graphData, by = c('site_no' = 'site')) %>%
+  left_join(basins)
   
   
 sites_df <- st_as_sf(sites[, c("dec_long","dec_lat", 'chemicals', 'EAR')],
                      coords = c("dec_long","dec_lat"),
                      crs = crsLONGLAT)
 
-minneapolis <- data.frame(longitude = -93.273882, 
-                          latitude = 44.969226)
-minneapolis <- st_as_sf(minneapolis, coords = c('longitude', 'latitude'), 
-                        crs = crsLONGLAT)
-
 sites_proj <- st_transform(sites_df, crs = crs_plot)
-minneapolis <- st_transform(minneapolis, crs = crs_plot)
+
+# minneapolis <- data.frame(longitude = -93.273882, 
+#                           latitude = 44.969226)
+# minneapolis <- st_as_sf(minneapolis, coords = c('longitude', 'latitude'), 
+#                         crs = crsLONGLAT)
+# minneapolis <- st_transform(minneapolis, crs = crs_plot)
 
 # add column if fipronil was detected at any given site based on NA vals
 # sites_proj <- mutate(sites_proj, fipronil_detected = ifelse(is.na(maxsumEAR_fipronil), 'NO', 'YES'))
@@ -216,16 +218,15 @@ minneapolis <- st_transform(minneapolis, crs = crs_plot)
   
 first_pass <- ggplot() + 
   geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
-  geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg2`*100)) +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg`*100)) +
   # geom_sf(data = basins, alpha = 0.5, aes(fill = 'brown')) +
   # scale_fill_gradient(low = '#f5f5f5', high = '#543005', name = "% Agriculture") +
   scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Agriculture") +
   # scale_fill_brewer(palette = "Greens", name= "% Agriculture") +
   geom_sf(data = flowlines, color = "lightblue") +
   geom_sf(data = GL, color = "gray50", fill=NA) +
-  geom_sf(data = sites_proj, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
-  geom_sf(data = sites_proj, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
-
+  geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
+  geom_sf(data = sites_df, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
   scale_size(range = c(4,10), breaks = c(10,20,30), guide = 'legend') +
   scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
                        guide = 'colourbar') +
@@ -233,7 +234,7 @@ first_pass <- ggplot() +
   # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
   # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
   coord_sf(crs = crs_plot,
-           xlim = c(b["xmin"]+1000,b["xmax"]+10000), 
+           xlim = c(b["xmin"]+1000,b["xmax"]+10000),
            ylim = c(b["ymin"],b["ymax"]-100000)) +
   theme_minimal() +
   theme(panel.grid.minor = element_blank(),
@@ -259,6 +260,20 @@ first_pass <- ggplot() +
 first_pass
 
 ggsave(first_pass, filename = file_out(file.path(path_to_data, "Figures/site_map_nchems.png")), height = 6.5, width = 8)  
+
+
+
+ggplot() + 
+  geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg2`*100)) +
+  north(data=basins, location='topright') +
+  scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Agriculture")
+  
+ggplot() + 
+  geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = `perUrban2`*100)) +
+  north(data=basins, location='topright') +
+  scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Urban")
 
 #Working above here
 #Need to get lakes and watershed %ag data
