@@ -263,6 +263,55 @@ ggsave(first_pass, filename = file_out(file.path(path_to_data, "Figures/site_map
 
 
 
+
+second_pass <- ggplot() + 
+  geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = (`perUrban` + `perAg`)*100)) +
+  # geom_sf(data = basins, alpha = 0.5, aes(fill = 'brown')) +
+  # scale_fill_gradient(low = '#f5f5f5', high = '#543005', name = "% Agriculture") +
+  scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Ag + Urban") +
+  # scale_fill_brewer(palette = "Greens", name= "% Agriculture") +
+  geom_sf(data = flowlines, color = "lightblue") +
+  geom_sf(data = GL, color = "gray50", fill=NA) +
+  geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
+  geom_sf(data = sites_df, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
+  scale_size(range = c(4,10), breaks = c(10,20,30), guide = 'legend') +
+  scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
+                       guide = 'colourbar') +
+  
+  # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
+  # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
+  coord_sf(crs = crs_plot,
+           xlim = c(b["xmin"]+1000,b["xmax"]+10000),
+           ylim = c(b["ymin"],b["ymax"]-100000)) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        # panel.border = element_blank(),
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5),
+        # panel.background = element_blank(),
+        axis.text = element_text(),
+        axis.title = element_blank(),
+        axis.ticks = element_line(), 
+        legend.position = 'bottom',
+        legend.direction = 'horizontal') +
+  guides(fill = guide_colourbar(title.position = 'top')) +
+  geom_point(alpha = 0, shape = 16,
+             aes(x = rep(214731.983109861, 15), y = rep(838589.951769598, 15), size = sites_proj$chemicals, color = sites_proj$EAR)) +
+  guides(size = guide_legend(label.position = 'bottom', label.hjust = 0.5,  
+                             title = '# Chemicals Detected', title.position = 'top', 
+                             override.aes = list(alpha = 1, stroke = 2), order = 2), 
+         fill = guide_colourbar(title.position = 'top', order = 1), 
+         color = guide_colorbar(title.position = 'top', order = 3, 
+                                title = '# Chemicals with\nEAR > 0.001')) +
+  theme(legend.box = "horizontal") 
+
+second_pass
+
+ggsave(second_pass, filename = file_out(file.path(path_to_data, "Figures/site_map_UrbanPlusAg_nchems.png")), height = 6.5, width = 8)  
+
+
+
+
 ggplot() + 
   geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
   geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg2`*100)) +
