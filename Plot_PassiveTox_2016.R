@@ -61,7 +61,7 @@ chemicalbyEAR2 <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) 
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
   # coord_flip() +
   facet_grid(.~Class, space="free", scales="free") +
-  labs(x='Chemical', y='Number of chemicals', fill = 'EAR') + 
+  labs(x='Chemical', y='Number of streams', fill = 'EAR') + 
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -127,6 +127,7 @@ site_detection <- site_detection %>%
   mutate(group = factor(group, levels=rev(c("AboveEAR0.001", "AboveEAR0.0001", "OnlyDetected"))))
 
 site_detection$value[which(is.na(site_detection$value))] <- 0
+
 
 
 #Plot barplot by site 
