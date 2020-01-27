@@ -50,14 +50,13 @@ cas_df <- read.csv(file_in(file.path(path_to_data, 'Data/Pesticides_2016_monitor
   # full_join(chem_info2)
 
 
-#Load pesticide data
-# # WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df_combine, 
-#                               sheet = "select data",
-#                               n_max=60,
-#                               site_sheet = "Site List",
-#                               year = 2016,
-#                               skip_site = 2)
 
+#Benchmarks
+#from Sam's surface water tox eval file
+benchmarks_df <- read_excel(file_in(file.path(path_to_data, 'Data/WQ_pesticides_Bench.xlsx')), sheet='Benchmarks') 
+
+
+#Load pesticide data
 WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
                               sheet = "select data",
                               n_max=60,
@@ -122,6 +121,11 @@ tox_input_list <- list("Data" = WW_2016_forToxEval,
                  "Sites" = sites_2016, 
                  "Exclude" = exclude)
 
+tox_benchmark_input_list <- list("Data" = WW_2016_forToxEval, 
+                       "Chemicals" = cas_df,
+                       "Benchmarks" = benchmarks_df,
+                       "Sites" = sites_2016)
+
 allpocis_input_list <- list("Data" = AllPOCIS_forToxEval, 
                        "Chemicals" = cas_df,
                        "Sites" = sites_2016, 
@@ -129,6 +133,7 @@ allpocis_input_list <- list("Data" = AllPOCIS_forToxEval,
 
 saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
 
+saveOutput = openxlsx::write.xlsx(tox_benchmark_input_list, file = file_out(file.path(path_to_data, "Data/PassiveBenchmarksForToxEval.xlsx")))
 
 saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval_AllPocis.xlsx")))
 
