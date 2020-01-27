@@ -23,7 +23,7 @@ source("R/analyze/get_chem_info.R")
 # source("R/analyze/create_tox_file.R")
 
 #Load chemical lists
-cas_df <- read.csv(file_in(file.path(path_to_data, 'Data/Pesticides_2016_monitoring_list_GLRI_USGS.csv'))) %>%
+cas_df <- read.csv(file_in(file.path(path_to_data, 'Data/Pesticides_2016_monitoring_list_GLRI_USGS_Loken.csv'))) %>%
   rename(chnm = Chemical.Name) %>%
   mutate(chnm = tolower(chnm))
 
