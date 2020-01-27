@@ -102,12 +102,16 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$chnm <- gsub(" \\{CEAT\\} \\(deisopropylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("  \\{caat\\} \\(didealkylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub(" \\{eoat\\} \\(deisopropylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub(" \\{ioiat\\} \\(Deethylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   
   data_long$chnm <- gsub("Tebupirimphos","Tebupirimfos",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("Tebuthiuron TP el108","Tebuthiuron Transformation Product 108",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("Tebuthiuron Tp","Tebuthiuron Transformation Product",data_long$chnm, ignore.case = TRUE)
- 
-  
+  data_long$chnm <- gsub(" \\(Dimethoate Oxon\\)","",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub("Halosulfuron-Methyl","Halosulfuron methyl",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub("o-Ethyl-o-Methyl-s-Propylphosphorothioate","O-Ethyl O-methyl S-propyl phosphorothioate",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub("o-Ethyl-s-Propyl Phosphorothioate","O-Ethyl S-propyl phosphorothioate",data_long$chnm, ignore.case = TRUE)
+
   
   # Premature taking out censored values?
   data_long <- filter(data_long,
