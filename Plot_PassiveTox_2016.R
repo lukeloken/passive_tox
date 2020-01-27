@@ -33,10 +33,11 @@ chem_freq_EAR0.0001<-chemicalSummary2 %>%
 
 chem_detection <- full_join(chem_freq_EAR0.001, chem_freq_EAR0.0001) %>%
   full_join(chem_freq_allpocis) %>%
-  left_join(unique(chemicalSummary[c("chnm", "Class")])) %>%
+  left_join(unique(chemicalSummary_allpocis[c("chnm", "Class")])) %>%
   rowwise() %>%
   mutate(EAR_total = sum(AboveEAR0.001, AboveEAR0.0001, na.rm=T),
-         OnlyDetected = Detected - EAR_total) %>%
+         OnlyDetected = Detected - EAR_total,
+         chnm = as.character(chnm)) %>%
   select(-Detected, -EAR_total )
 
 
@@ -80,6 +81,31 @@ print(chemicalbyEAR2)
 
 ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByEAR_Bychem2.png")), plot = chemicalbyEAR2, height=4, width=6)
 
+
+
+#Plot barplot by chemical horiztonal
+chemicalbyEAR2_horiztonal <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) + 
+  geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
+  coord_flip() +
+  facet_grid(Class~., space="free", scales="free") +
+  labs(x='Chemical', y='Number of streams', fill = 'EAR') + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=.5),
+        axis.title.x=element_blank(),
+        legend.title = element_blank(),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8)) + 
+  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
+  theme(legend.position = 'bottom') +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+
+print(chemicalbyEAR2_horiztonal)
+
+ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByEAR_Bychem2_horiztonal.png")), plot = chemicalbyEAR2_horiztonal, height=6, width=4)
 
 
 
