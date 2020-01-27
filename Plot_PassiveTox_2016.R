@@ -2,8 +2,23 @@
 
 #Calculate chemical summary for passive pesticide data
 # tox_list<- create_toxEval(file_in(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
-chemicalSummary
-chemicalSummary_allpocis
+
+#R objects
+chemicalSummary #Select data from POCIS 
+chemicalSummary_allpocis #all data from POCIS
+summary_bench # Select data using custom benchmarks
+
+
+plot_tox_boxplots(summary_bench, 
+                  category = "Chemical", 
+                  sum_logic = FALSE,
+                  x_label = "Toxicity Quotient")
+
+
+plot_tox_boxplots(chemicalSummary, 
+                  category = "Chemical", 
+                  sum_logic = FALSE)
+
 
 # create tables by chemical and by sites
 # these are detections above the POCIS minimum detection
