@@ -139,6 +139,7 @@ crs_plot <- st_crs(102003)
 #   left_join(sites, by = c("STAID" = "site_no"))
 
 basins_OGR <- readRDS( file_in(file.path(path_to_data, "Rdata/watershedmetrics.rds")))
+basins_OGR <- basins_OGR[basins_OGR$STAID %in% sites$site_no,]
 basins <- st_as_sf(basins_OGR) %>%
   st_transform(crs=crsLONGLAT) %>%
   dplyr::filter(STAID %in% sites$site_no)
