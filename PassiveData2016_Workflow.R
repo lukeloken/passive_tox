@@ -6,7 +6,9 @@
 # Luke Loken
 # January 2020
 
-path_to_data <- c('C:/Users/lloken/OneDrive - DOI/GLRI_Pesticides')
+# path_to_data <- c('C:/Users/lloken/OneDrive - DOI/GLRI_Pesticides')
+path_to_data <- c('C:/Users/lloken/DOI/Corsi, Steven R - GLRI CECs/2016/Manuscripts/Pesticides_passive')
+
 
 #load libraries
 library(gridExtra)
@@ -17,7 +19,7 @@ source('R/functions/ScaleYLog10Nice.R')
 
 
 #Load passive sampler data and generate toxEval file
-#Saves excel file for both select and all data
+#Saves toxeval file (excel) for select data, all data, and TQ benchmarks data
 source('passive_data_setup_2016.R')
 
 #Evaluate toxicity using ToxEval for passive data
