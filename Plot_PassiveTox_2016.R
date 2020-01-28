@@ -6,7 +6,7 @@
 #R objects
 chemicalSummary #Select data from POCIS 
 chemicalSummary_allpocis #all data from POCIS
-summary_bench # Select data using custom benchmarks
+chemicalSummary_bench # Select data using custom benchmarks
 
 #Check out the standard boxplots
 plot_tox_boxplots(summary_bench, 
@@ -72,18 +72,18 @@ chem_detection$value[which(is.na(chem_detection$value))] <- 0
 ##########################################
 
 #Make similar table for TQ
-summary_bench2 <- summary_bench %>%
+chemicalSummary_bench2 <- chemicalSummary_bench %>%
   filter(EAR>0) %>%
   dplyr::group_by(site, chnm) %>% 
   summarize(EAR = max(EAR, na.rm=T))
 
-chem_freq_TQ0.1<-summary_bench2 %>%
+chem_freq_TQ0.1<-chemicalSummary_bench2 %>%
   group_by(chnm, site) %>%
   filter(EAR >= 0.1) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ0.1")
 
-chem_freq_TQ0.01<-chemicalSummary2 %>%
+chem_freq_TQ0.01<-chemicalSummary_bench2 %>%
   group_by(chnm, site) %>%
   filter(EAR < 0.1 & EAR >= 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
@@ -197,7 +197,7 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByTQ_Bychem2.png")), p
 
 
 # #######################
-#Summarize by site
+# Summarize EAR by site
 # #######################
 
 site_freq_allpocis<-chemicalSummary_allpocis %>%
@@ -273,81 +273,82 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_BySite2.png")), 
 
 
 
-
-#summarize and organize EAR
-chemicalSummary2 <- chemicalSummary %>%
+#########################################################################
+#summarize and organize EAR and TQ for side by side horizontal boxplots
+#some of this code should be eliminated as it is repeated above
+chemicalSummary3 <- chemicalSummary %>%
   mutate(chnm = as.character(chnm))
-chemicalSummary2$chnm[which(chemicalSummary2$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
-  paste0(chemicalSummary2$chnm[which(chemicalSummary2$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
-chemicalSummary2$Class <- gsub("Deg - ", "", chemicalSummary2$Class)
+chemicalSummary3$chnm[which(chemicalSummary3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
+  paste0(chemicalSummary3$chnm[which(chemicalSummary3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
+chemicalSummary3$Class <- gsub("Deg - ", "", chemicalSummary3$Class)
 
-chemicalSummary2 <- chemicalSummary2 %>%
+chemicalSummary3 <- chemicalSummary3 %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
   arrange((Class), desc(EAR)) 
 
-chemicalSummary2_maxbySite <- chemicalSummary2 %>%
+chemicalSummary3_maxbySite <- chemicalSummary3 %>%
   group_by(chnm, site, Class) %>%
   summarize(EAR = max(EAR)) %>%
   arrange(Class, chnm, (EAR)) 
 
-chemicalSummary2_medianAcrossSites <- chemicalSummary2_maxbySite %>%
+chemicalSummary3_medianAcrossSites <- chemicalSummary3_maxbySite %>%
   group_by(chnm, Class) %>%
   summarize(EAR = median(EAR[which(EAR>0)])) 
 
-chemicalSummary2_medianAcrossSites$EAR[which(is.na(chemicalSummary2_medianAcrossSites$EAR))] <-0
-chemicalSummary2_medianAcrossSites <- chemicalSummary2_medianAcrossSites  %>% 
+chemicalSummary3_medianAcrossSites$EAR[which(is.na(chemicalSummary3_medianAcrossSites$EAR))] <-0
+chemicalSummary3_medianAcrossSites <- chemicalSummary3_medianAcrossSites  %>% 
   arrange(desc(Class), (EAR))
 
-chemicalSummary2_maxbySite <- chemicalSummary2_maxbySite %>%
+chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
   group_by() %>%
-  mutate(chnm = factor(chnm, chemicalSummary2_medianAcrossSites$chnm)) %>%
+  mutate(chnm = factor(chnm, chemicalSummary3_medianAcrossSites$chnm)) %>%
   arrange(Class, chnm, desc(EAR))
 
 #summarize and organize TQ
-summary_bench2 <- summary_bench %>%
+chemicalSummary_bench3 <- chemicalSummary_bench %>%
   mutate(chnm = as.character(chnm))
-summary_bench2$chnm[which(summary_bench2$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
-  paste0(summary_bench2$chnm[which(summary_bench2$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
-summary_bench2$Class <- gsub("Deg - ", "", summary_bench2$Class)
+chemicalSummary_bench3 $chnm[which(chemicalSummary_bench3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
+  paste0(chemicalSummary_bench3 $chnm[which(chemicalSummary_bench3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
+chemicalSummary_bench3 $Class <- gsub("Deg - ", "", chemicalSummary_bench3 $Class)
 
-summary_bench2 <- summary_bench2 %>%
+chemicalSummary_bench3  <- chemicalSummary_bench3  %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
   arrange((Class), desc(EAR)) 
 
-summary_bench2_maxbySite <- summary_bench2 %>%
+chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3  %>%
   group_by(chnm, site, Class) %>%
   summarize(EAR = max(EAR)) %>%
   arrange(Class, chnm, (EAR)) 
 
-summary_bench2_medianAcrossSites <- summary_bench2_maxbySite %>%
+chemicalSummary_bench3_medianAcrossSites <- chemicalSummary_bench3_maxbySite %>%
   group_by(chnm, Class) %>%
   summarize(EAR = median(EAR[which(EAR>0)])) 
 
-summary_bench2_medianAcrossSites$EAR[which(is.na(summary_bench2_medianAcrossSites$EAR))] <-0
-summary_bench2_medianAcrossSites <- summary_bench2_medianAcrossSites  %>% 
+chemicalSummary_bench3_medianAcrossSites$EAR[which(is.na(chemicalSummary_bench3_medianAcrossSites$EAR))] <-0
+chemicalSummary_bench3_medianAcrossSites <- chemicalSummary_bench3_medianAcrossSites  %>% 
   arrange(desc(Class), (EAR))
 
-summary_bench2_maxbySite <- summary_bench2_maxbySite %>%
+chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3_maxbySite %>%
   group_by() %>%
-  mutate(chnm = factor(chnm, summary_bench2_medianAcrossSites$chnm)) %>%
+  mutate(chnm = factor(chnm, chemicalSummary_bench3_medianAcrossSites$chnm)) %>%
   arrange(Class, chnm, desc(EAR))
 
 
 #combine chemical order
-chemorder2 <- rev(intersect(chemicalSummary2_medianAcrossSites$chnm, summary_bench2_medianAcrossSites$chnm))
+chemorder2 <- rev(intersect(chemicalSummary3_medianAcrossSites$chnm, chemicalSummary_bench3_medianAcrossSites$chnm))
 
-chemorder3 <- c(chemorder2, chemicalSummary2_medianAcrossSites$chnm[-which(chemicalSummary2_medianAcrossSites$chnm %in% chemorder2)], summary_bench2_medianAcrossSites$chnm[-which(summary_bench2_medianAcrossSites$chnm %in% chemorder2)])
+chemorder3 <- c(chemorder2, chemicalSummary3_medianAcrossSites$chnm[-which(chemicalSummary3_medianAcrossSites$chnm %in% chemorder2)], chemicalSummary_bench3_medianAcrossSites$chnm[-which(chemicalSummary_bench3_medianAcrossSites$chnm %in% chemorder2)])
 
-chemicalSummary2_maxbySite <- chemicalSummary2_maxbySite %>%
+chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
   mutate(chnm = factor(chnm, rev(chemorder3))) %>%
   arrange(Class, chnm, desc(EAR))
 
-summary_bench2_maxbySite <- summary_bench2_maxbySite %>%
+chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3_maxbySite %>%
   mutate(chnm = factor(chnm, rev(chemorder3))) %>%
   arrange(Class, chnm, desc(EAR))
 
 
-EARbox <- ggplot(chemicalSummary2_maxbySite, aes(x=chnm, y=EAR)) +
+EARbox <- ggplot(chemicalSummary3_maxbySite, aes(x=chnm, y=EAR)) +
   # geom_vline(xintercept = 4.5) +
   geom_hline(yintercept = .001, linetype=2) +
   geom_boxplot(aes(fill=Class)) +
@@ -360,7 +361,7 @@ EARbox <- ggplot(chemicalSummary2_maxbySite, aes(x=chnm, y=EAR)) +
   scale_fill_brewer(palette = 'Dark2')
 
 
-TQbox <- ggplot(summary_bench2_maxbySite, aes(x=chnm, y=EAR)) +
+TQbox <- ggplot(chemicalSummary_bench3_maxbySite, aes(x=chnm, y=EAR)) +
   # geom_vline(xintercept = c(4.5)) +
   geom_hline(yintercept = .1, linetype=2) + 
   geom_boxplot(aes(fill=Class)) +
