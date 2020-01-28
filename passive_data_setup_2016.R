@@ -57,7 +57,7 @@ benchmarks_df <- read_excel(file_in(file.path(path_to_data, 'Data/WQ_pesticides_
 
 
 #Load pesticide data
-WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
+WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
                               sheet = "select data",
                               n_max=60,
                               site_sheet = "Site List",
@@ -72,7 +72,7 @@ WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 PO
                               # skip_site = 2)
 
 #testing extra CAS files
-AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
+AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
                                     sheet = "all data",
                                     n_max=300,
                                     site_sheet = "Site List",
@@ -94,7 +94,7 @@ AllPOCIS_forToxEval <- AllPOCIS_2016 %>%
 
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
 
-sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
+sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
   rename(site_no = `USGS Station ID`) %>%
   # mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
   select(`Short Name`, `site_no`, Lake)
