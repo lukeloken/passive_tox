@@ -60,15 +60,15 @@ chemicalSummary_allpocis$Class[is.na(chemicalSummary_allpocis$Class)] <- tox_lis
 # use this for toxicity quotient (TQ)
 
 tox_bench_list<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/Passive2016Benchmarks_ToxEval.xlsx")))
-tox_bench_list$chem_site$site_grouping <- factor(tox__bench_list$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
+tox_bench_list$chem_site$site_grouping <- factor(tox_bench_list$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
 
-summary_bench <- get_chemical_summary(tox_bench_list)
+chemicalSummary_bench <- get_chemical_summary(tox_bench_list)
 
-summary_bench <- tox_bench_list$chem_site %>%
+chemicalSummary_bench <- tox_bench_list$chem_site %>%
   rename(site = SiteID,
          shortName = `Short Name`) %>% 
-  right_join(summary_bench) 
+  right_join(chemicalSummary_bench) 
 
 #Add chemical class for chemicals that have new names from toxEval
 chemicalSummary_bench$Class[is.na(chemicalSummary_bench$Class)] <- tox_bench_list$chem_info$Class[match(chemicalSummary_bench$CAS[is.na(chemicalSummary_bench$Class)], tox_bench_list$chem_info$CAS)]
