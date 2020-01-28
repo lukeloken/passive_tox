@@ -12,21 +12,22 @@ library(FedData)
 library(raster)
 library(sp)
 library(rgdal)
+library(sf)
 
 #Watersheds
 # basinPath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20131299_GLRI_MASTER/~old/201401_HUC12Basins"
 # basins_OGR <- readOGR(basinPath, 'GLRI_Basins_HUC12Linework', verbose=F)
 
-basinPath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20190730_Pesticides"
-basins_OGR <- readOGR(basinPath, 'PesticideBasins', verbose=F)
+# basinPath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20190730_Pesticides"
+# basins_OGR <- readOGR(basinPath, 'PesticideBasins', verbose=F)
 # basins_OGR <- filter(basins_OGR, STAID %in% sites$site_no)
 
-# basins = st_read(basinPath, layer='GLRI_Basins_HUC12Linework')
+# basins = st_read(basinPath, 'PesticideBasins')
 # basins <- filter(basins, STAID %in% sites$site_no)
 
 #nlcd
 # big_nlcd = get_nlcd(template=GL, label="GL")
-big_nlcd = get_nlcd(template=basins, label="basins")
+big_nlcd = get_nlcd(template=basins_OGR, label="basins", year='2011')
 # NLCDpath <- c('O:/BaseData/National/LandCover/NLCD16_2019Version/nlcd16lc.ovr')
 # big_nlcd = raster(NLCDpath)
 # 
