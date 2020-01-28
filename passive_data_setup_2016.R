@@ -131,9 +131,9 @@ allpocis_input_list <- list("Data" = AllPOCIS_forToxEval,
                        "Sites" = sites_2016, 
                        "Exclude" = exclude)
 
-saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval.xlsx")))
+saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016_ToxEval.xlsx")))
 
-saveOutput = openxlsx::write.xlsx(tox_benchmark_input_list, file = file_out(file.path(path_to_data, "Data/PassiveBenchmarksForToxEval.xlsx")))
+saveOutput = openxlsx::write.xlsx(tox_benchmark_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016Benchmarks_ToxEval.xlsx")))
 
-saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path(path_to_data, "Data/PassiveForToxEval_AllPocis.xlsx")))
+saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016AllPOCIS_ToxEval.xlsx")))
 
