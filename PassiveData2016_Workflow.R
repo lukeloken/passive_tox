@@ -32,4 +32,5 @@ source('Plot_PassiveTox_2016.R')
 #Make map figure of EAR, number of chemicals detected with watersheds colored by % ag
 source('R/map_sites_passive_2016.R')
 
+#Scatterplots of land use versus chemical detections
 source('R/Plot_scatterplots_perAg_chemicals.R')
