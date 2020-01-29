@@ -9,7 +9,7 @@ chemicalSummary_allpocis #all data from POCIS
 chemicalSummary_bench # Select data using custom benchmarks
 
 #Check out the standard boxplots
-plot_tox_boxplots(summary_bench, 
+plot_tox_boxplots(chemicalSummary_bench, 
                   category = "Chemical", 
                   sum_logic = FALSE,
                   x_label = "Toxicity Quotient")
