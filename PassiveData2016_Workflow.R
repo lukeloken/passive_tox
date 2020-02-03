@@ -26,6 +26,10 @@ source('passive_data_setup_2016.R')
 #Loads two objects into environment (chemicalSummary and chemicalSummary_allpocis)
 source('ToxEval_passive2016.R')
 
+#Evaluate toxicity using ToxEval for water samples data
+source('ToxEval_watersamples2016.R')
+
+
 #Plot number of chemicals by site, and number of sites by chemical barplots
 source('Plot_PassiveTox_2016.R')
 
