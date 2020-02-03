@@ -2,7 +2,7 @@
 #Load all toxEval files and generate chemical summary for each
 
 ############################################
-# Select data 
+# Surface data 
 # include all chemicals that have known POCIS kinetics
 
 tox_list_surface <- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides.xlsx")))
@@ -37,10 +37,11 @@ chemicalSummary_surface <- tox_list_surface$chem_site %>%
 tox_bench_list_surface<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides_Bench.xlsx")))
 # tox_bench_list_surface$chem_site$site_grouping <- factor(tox_bench_list_surface$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
+#replace chem data on benchmarks file with the EAR file
+tox_bench_list_surface$chem_data <- tox_list_surface$chem_data
 
 chemicalSummary_bench_surface <- get_chemical_summary(tox_bench_list_surface)
 
-#Error is happening here
 chemicalSummary_bench_surface <- tox_bench_list_surface$chem_site %>%
   rename(site = SiteID,
          shortName = `Short Name`) %>% 
