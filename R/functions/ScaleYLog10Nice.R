@@ -24,5 +24,6 @@ scale_loglog <- function(...) {
   list(scale_x_log10nice(...),scale_y_log10nice(...))
 }
 
-qplot(x=exp(5*rnorm(100)),geom="density",kernel="rectangular") + 
-  scale_x_log10nice()
+# library(ggplot2)
+# qplot(x=exp(5*rnorm(100)),geom="density",kernel="rectangular") + 
+#   scale_x_log10nice()
