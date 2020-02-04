@@ -252,15 +252,15 @@ site_freq_EARDetected<-chemicalSummary2_surface %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "EARDetected")
 
-site_order <- unique(chemicalSummary_surface$shortName)
-
+site_table <- unique(chemicalSummary_surface[c('shortName', 'site')])
+site_order_surface <- site_table$shortName[match(site_ID_order, site_table$site)]
 
 site_detection <- full_join(site_freq_EAR0.001, site_freq_EAR0.0001) %>%
   full_join(site_freq_EARDetected) %>%
   left_join(unique(chemicalSummary_surface[c("site", "shortName", "Lake")])) %>%
   rowwise() %>%
   mutate(Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")),
-         shortName = factor(shortName, site_order))
+         shortName = factor(shortName, site_order_surface))
 
 
 
