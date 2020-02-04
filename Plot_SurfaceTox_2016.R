@@ -306,7 +306,14 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_BySite2_watersam
 #########################################################################
 #summarize and organize EAR and TQ for side by side horizontal boxplots
 #some of this code should be eliminated as it is repeated above
-chemicalSummary3 <- chemicalSummary %>%
+
+chemicalSummary_surface #Sam's data from surface
+chemicalSummary_bench_surface # Sam's surface data using custom benchmarks
+
+
+chemicalSummary3 <- chemicalSummary_surface %>%
+  filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
+  filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
   mutate(chnm = as.character(chnm))
 chemicalSummary3$chnm[which(chemicalSummary3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
   paste0(chemicalSummary3$chnm[which(chemicalSummary3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
@@ -336,6 +343,8 @@ chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
 
 #summarize and organize TQ
 chemicalSummary_bench3 <- chemicalSummary_bench_surface %>%
+  filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
+  filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
   mutate(chnm = as.character(chnm))
 chemicalSummary_bench3 $chnm[which(chemicalSummary_bench3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
   paste0(chemicalSummary_bench3 $chnm[which(chemicalSummary_bench3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
@@ -387,7 +396,7 @@ EARbox <- ggplot(chemicalSummary3_maxbySite, aes(x=chnm, y=EAR)) +
   scale_x_discrete(drop = F) +
   coord_flip() +
   theme(legend.position='none', axis.title.y=element_blank(), panel.grid.minor = element_blank(),
-        axis.text.x = element_text(size=8), axis.text.y = element_text(size=8)) +
+        axis.text.x = element_text(size=8), axis.text.y = element_text(size=6)) +
   scale_fill_brewer(palette = 'Dark2')
 
 
@@ -400,7 +409,7 @@ TQbox <- ggplot(chemicalSummary_bench3_maxbySite, aes(x=chnm, y=EAR)) +
   scale_x_discrete(drop = F) +
   coord_flip() +
   theme(legend.position='none', axis.title.y=element_blank(), panel.grid.minor = element_blank(),
-        axis.text.x = element_text(size=8), axis.text.y = element_text(size=8)) +
+        axis.text.x = element_text(size=8), axis.text.y = element_text(size=6)) +
   scale_fill_brewer(palette = 'Dark2')
 
   
@@ -421,6 +430,6 @@ rm(TQ_box_withLegend)
 boxes_withLegend<-grid.arrange(box_by_box, mylegend, nrow=2, heights=c(15,1))
 
 
-ggsave(file_out(file.path(path_to_data, "Figures/SideBoxes_EARandTQ_ByChemical.png")), plot = boxes_withLegend, height=6, width=7)
+ggsave(file_out(file.path(path_to_data, "Figures/SideBoxes_EARandTQ_ByChemical_watersamples.png")), plot = boxes_withLegend, height=6, width=7)
 
 
