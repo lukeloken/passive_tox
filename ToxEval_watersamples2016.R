@@ -17,6 +17,17 @@ tox_list_surface$chem_data <- tox_list_surface$chem_data %>%
 #Use exclusions from passive data file
 tox_list_surface$exclusions <- tox_list$exclusions
 
+tox_list_surface$chem_site <- tox_list_surface$chem_site %>%
+  rename(Lake = site_grouping) %>%
+  mutate(Lake = gsub("Lake ", "", Lake)) %>%
+  mutate(`Short Name` = gsub('St', 'St. ', `Short Name`)) %>%
+  mutate(`Short Name` = gsub('GrandMI', 'Grand', `Short Name`)) %>%
+  left_join(tox_list$chem_site[,c("SiteID", 'site_grouping')]) 
+
+tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04157000")] <- 'MI'
+
+tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04085427")] <- 'WI'
+
 ACClong <- get_ACC(tox_list_surface$chem_info$CAS)
 ACClong <- remove_flags(ACClong)
 
@@ -31,10 +42,8 @@ chemicalSummary_surface <- get_chemical_summary(tox_list_surface,
 
 chemicalSummary_surface <- tox_list_surface$chem_site %>%
   rename(site = SiteID,
-         shortName = `Short Name`,
-         Lake = site_grouping) %>%
-  right_join(chemicalSummary_surface) %>%
-  mutate(Lake = gsub("Lake ", "", Lake))
+         shortName = `Short Name`) %>%
+  right_join(chemicalSummary_surface) 
 
 #Change saginaw river site to match pocis
 chemicalSummary_surface$site[which(chemicalSummary_surface$site=='04157000')] <- "04157005"
