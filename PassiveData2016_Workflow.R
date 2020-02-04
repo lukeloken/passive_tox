@@ -33,8 +33,12 @@ source('ToxEval_watersamples2016.R')
 #Plot number of chemicals by site, and number of sites by chemical barplots
 source('Plot_PassiveTox_2016.R')
 
+#Plot number of chemicals by site, and number of sites by chemical barplots for water samples
+source('Plot_SurfaceTox_2016.R')
+
+
 #Make map figure of EAR, number of chemicals detected with watersheds colored by % ag
-source('R/map_sites_passive_2016.R')
+source('map_sites_passive_2016.R')
 
 #Scatterplots of land use versus chemical detections
 source('R/Plot_scatterplots_perAg_chemicals.R')
