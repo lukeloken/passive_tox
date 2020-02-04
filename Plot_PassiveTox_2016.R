@@ -377,7 +377,7 @@ TQbox <- ggplot(chemicalSummary_bench3_maxbySite, aes(x=chnm, y=EAR)) +
   
 
 
-box_by_box <- grid.arrange(grobs=list(EARbox, TQbox), nrow=1)
+box_by_box <- grid.arrange(grobs=list(EARbox, TQbox), nrow=1, top='POCIS passive samples')
 
 
 TQ_box_withLegend <-TQbox + 
