@@ -220,6 +220,7 @@ site_freq_EAR0.0001<-chemicalSummary2 %>%
   tally(name = "AboveEAR0.0001")
 
 site_order <- unique(chemicalSummary$shortName)
+site_ID_order <- unique(chemicalSummary$site)
 
 
 site_detection <- full_join(site_freq_EAR0.001, site_freq_EAR0.0001) %>%
