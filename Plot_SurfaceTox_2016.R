@@ -374,15 +374,19 @@ chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3_maxbySite %>%
 
 
 #combine chemical order
-chemorder2 <- rev(intersect(chemicalSummary3_medianAcrossSites$chnm, chemicalSummary_bench3_medianAcrossSites$chnm))
+#use chemical order from passive data, exclude other chemicals
 
-chemorder3 <- c(chemorder2, chemicalSummary3_medianAcrossSites$chnm[-which(chemicalSummary3_medianAcrossSites$chnm %in% chemorder2)], chemicalSummary_bench3_medianAcrossSites$chnm[-which(chemicalSummary_bench3_medianAcrossSites$chnm %in% chemorder2)])
+# chemorder2 <- rev(intersect(chemicalSummary3_medianAcrossSites$chnm, chemicalSummary_bench3_medianAcrossSites$chnm))
+# 
+# chemorder3 <- c(chemorder2, chemicalSummary3_medianAcrossSites$chnm[-which(chemicalSummary3_medianAcrossSites$chnm %in% chemorder2)], chemicalSummary_bench3_medianAcrossSites$chnm[-which(chemicalSummary_bench3_medianAcrossSites$chnm %in% chemorder2)])
 
 chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
+  filter(chnm %in% chemorder3) %>%
   mutate(chnm = factor(chnm, rev(chemorder3))) %>%
   arrange(Class, chnm, desc(EAR))
 
 chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3_maxbySite %>%
+  filter(chnm %in% chemorder3) %>%
   mutate(chnm = factor(chnm, rev(chemorder3))) %>%
   arrange(Class, chnm, desc(EAR))
 
@@ -396,7 +400,7 @@ EARbox <- ggplot(chemicalSummary3_maxbySite, aes(x=chnm, y=EAR)) +
   scale_x_discrete(drop = F) +
   coord_flip() +
   theme(legend.position='none', axis.title.y=element_blank(), panel.grid.minor = element_blank(),
-        axis.text.x = element_text(size=8), axis.text.y = element_text(size=6)) +
+        axis.text.x = element_text(size=8), axis.text.y = element_text(size=8)) +
   scale_fill_brewer(palette = 'Dark2')
 
 
@@ -409,13 +413,13 @@ TQbox <- ggplot(chemicalSummary_bench3_maxbySite, aes(x=chnm, y=EAR)) +
   scale_x_discrete(drop = F) +
   coord_flip() +
   theme(legend.position='none', axis.title.y=element_blank(), panel.grid.minor = element_blank(),
-        axis.text.x = element_text(size=8), axis.text.y = element_text(size=6)) +
+        axis.text.x = element_text(size=8), axis.text.y = element_text(size=8)) +
   scale_fill_brewer(palette = 'Dark2')
 
   
 
 
-box_by_box <- grid.arrange(grobs=list(EARbox, TQbox), nrow=1)
+box_by_box_surfacesamples <- grid.arrange(grobs=list(EARbox, TQbox), nrow=1, top='Surface water samples')
 
 
 TQ_box_withLegend <-TQbox + 
@@ -427,7 +431,7 @@ mylegend<-g_legend(TQ_box_withLegend)
 rm(TQ_box_withLegend)
 
 
-boxes_withLegend<-grid.arrange(box_by_box, mylegend, nrow=2, heights=c(15,1))
+boxes_withLegend<-grid.arrange(box_by_box_surfacesamples, mylegend, nrow=2, heights=c(15,1))
 
 
 ggsave(file_out(file.path(path_to_data, "Figures/SideBoxes_EARandTQ_ByChemical_watersamples.png")), plot = boxes_withLegend, height=6, width=7)
