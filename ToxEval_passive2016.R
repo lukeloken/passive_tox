@@ -73,3 +73,5 @@ chemicalSummary_bench <- tox_bench_list$chem_site %>%
 #Add chemical class for chemicals that have new names from toxEval
 chemicalSummary_bench$Class[is.na(chemicalSummary_bench$Class)] <- tox_bench_list$chem_info$Class[match(chemicalSummary_bench$CAS[is.na(chemicalSummary_bench$Class)], tox_bench_list$chem_info$CAS)]
 
+
+rm(ACClong, ACClong_allpocis, cleaned_ep, filtered_ep )
