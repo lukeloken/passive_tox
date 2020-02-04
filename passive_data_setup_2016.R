@@ -138,5 +138,15 @@ saveOutput = openxlsx::write.xlsx(tox_benchmark_input_list, file = file_out(file
 saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016AllPOCIS_ToxEval.xlsx")))
 
 
+POCIS_conc_table <- WW_2016_forToxEval %>%
+  group_by() %>%
+  select(chnm, CAS) %>%
+  unique()
 
-rm(WW_2016_forToxEval, WW_2016, sites_2016, locations, exclude, cas_df, benchmarks_df)
+POCIS_detect_table <- AllPOCIS_forToxEval %>%
+  group_by() %>%
+  select(chnm, CAS) %>%
+  unique()
+
+
+rm(WW_2016_forToxEval, WW_2016, AllPOCIS_forToxEval, sites_2016, locations, exclude, cas_df, benchmarks_df)
