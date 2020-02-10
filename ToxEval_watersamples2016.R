@@ -10,8 +10,7 @@ date_filter <-as.Date(c("2016-06-01", "2016-07-21"))
 tox_list_surface <- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides.xlsx")))
 # tox_list_surface$chem_site$site_grouping <- factor(tox_list_surface$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
-tox_list_surface$chem_data <- tox_list_surface$chem_data %>%
-  filter(`Sample Date` >= date_filter[1], `Sample Date` <= date_filter[2])
+
 
 #Use exclusions from passive data file
 tox_list_surface$exclusions <- tox_list$exclusions
@@ -22,6 +21,9 @@ tox_list_surface$chem_site <- tox_list_surface$chem_site %>%
   mutate(`Short Name` = gsub('St', 'St. ', `Short Name`)) %>%
   mutate(`Short Name` = gsub('GrandMI', 'Grand', `Short Name`)) %>%
   left_join(tox_list$chem_site[,c("SiteID", 'site_grouping')]) 
+
+tox_list_surface$chem_info$Class[tox_list_surface$chem_info$CAS == '78-48-8'] = 'Herbicide'
+
 
 tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04157000")] <- 'MI'
 
@@ -72,6 +74,7 @@ chemicalSummary_bench_surface <- tox_bench_list_surface$chem_site %>%
   rename(site = SiteID,
          shortName = `Short Name`) %>% 
   right_join(chemicalSummary_bench_surface) 
+
 
 
 #Change saginaw river site to match pocis
