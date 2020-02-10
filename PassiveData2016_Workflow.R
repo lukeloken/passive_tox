@@ -36,6 +36,8 @@ source('Plot_PassiveTox_2016.R')
 #Plot number of chemicals by site, and number of sites by chemical barplots for water samples
 source('Plot_SurfaceTox_2016.R')
 
+#Combine water and passive samples and compare. 
+source('Compare_Plot_Passive_V_WaterSample.R')
 
 #Make map figure of EAR, number of chemicals detected with watersheds colored by % ag
 source('map_sites_passive_2016.R')
