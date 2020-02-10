@@ -27,6 +27,10 @@ chemicalSummary <- tox_list$chem_site %>%
 #Add chemical class for chemicals that have new names from toxEval
 chemicalSummary$Class[is.na(chemicalSummary$Class)] <- tox_list$chem_info$Class[match(chemicalSummary$CAS[is.na(chemicalSummary$Class)], tox_list$chem_info$CAS)]
 
+#Site order for plotting
+site_order <- unique(chemicalSummary$shortName)
+site_ID_order <- unique(chemicalSummary$site)
+
 
 ###############################################################
 # all pocis data
