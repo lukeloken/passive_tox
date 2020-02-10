@@ -24,8 +24,8 @@ plot_tox_boxplots(chemicalSummary_surface,
 # some data do not have benchmarks so first identify if they were detected
 
 
-
 chemicalSummary2_surface <- chemicalSummary_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
   filter(EAR>0) %>%
   filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
@@ -78,6 +78,7 @@ chem_detection$value[which(is.na(chem_detection$value))] <- 0
 #Make similar table for TQ
 
 chem_freq_all<-chemicalSummary_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
   filter(EAR>0) %>%
   filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
@@ -87,6 +88,7 @@ chem_freq_all<-chemicalSummary_surface %>%
   tally(name = "EARDetected")
 
 chemicalSummary_bench2 <- chemicalSummary_bench_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
   filter(EAR>0) %>%
   filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
@@ -312,6 +314,7 @@ chemicalSummary_bench_surface # Sam's surface data using custom benchmarks
 
 
 chemicalSummary3 <- chemicalSummary_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
   filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
   mutate(chnm = as.character(chnm))
@@ -343,6 +346,7 @@ chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
 
 #summarize and organize TQ
 chemicalSummary_bench3 <- chemicalSummary_bench_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
   filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
   mutate(chnm = as.character(chnm))
