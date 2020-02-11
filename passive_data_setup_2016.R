@@ -148,6 +148,10 @@ POCIS_detect_table <- AllPOCIS_forToxEval %>%
   select(chnm, CAS) %>%
   unique()
 
+#Table of mdl for pocis data
+POCIS_mdl <- WW_2016 %>%
+  select(chnm, MDL, CAS, Class) %>%
+  distinct()
 
 rm(WW_2016_forToxEval, WW_2016, AllPOCIS_forToxEval, locations, exclude, cas_df, benchmarks_df)
 
