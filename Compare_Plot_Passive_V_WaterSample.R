@@ -183,7 +183,7 @@ Scatterplot_passive_versus_water <- ggplot(chemicalSummary_merged, aes(x=passive
 
 print(Scatterplot_passive_versus_water)
 
-ggsave(file_out(file.path(path_to_data, "Figures/Scatterplot_EAR_Passive_V_WaterSample.png")), Scatterplot_passive_versus_water, height=10, width=8, units='in')
+ggsave(file_out(file.path(path_to_data, "Figures/Scatterplot_EAR_Passive_V_WaterSample.png")), Scatterplot_passive_versus_water, height=10, width=7, units='in')
 
 
 
