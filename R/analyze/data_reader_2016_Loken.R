@@ -71,13 +71,11 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$comment <- ""
   data_long$comment[grep("<",data_long$Value)] <- "<"
   data_long$comment[grep("DNQ",data_long$Value)] <- "DNQ"
-  data_long$comment[grep("E",data_long$Value)] <- "Est"
   data_long$Value <- gsub("DNQ","",data_long$Value)
   data_long$Value <- gsub("<","",data_long$Value)
   data_long$Value <- gsub("a","",data_long$Value)
   data_long$Value <- gsub("b","",data_long$Value)
   data_long$Value <- gsub("c","",data_long$Value)
-  data_long$Value <- gsub("E","",data_long$Value)
   data_long$Value <- gsub(" ","",data_long$Value)
   data_long <- data_long[data_long$Value != "lostinfield",]
   data_long <- data_long[data_long$Value != "-----",]
@@ -86,6 +84,11 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$comment[which(data_long$Value == "ND")] <- "<"
   data_long$Value[which(data_long$Value == "ND")] <- data_long$MDL[which(data_long$Value == "ND")]
   data_long <- filter(data_long, Value != "NA")
+  
+  #Remove "E" at start of value. E stands for Est. Note that E elsewhere in the string is likely scientific notation
+  data_long$comment[which(substring(data_long$Value,1,1)=="E")] <- "Est"
+  data_long$Value[which(substring(data_long$Value,1,1)=="E")] <- 
+    substring(data_long$Value,2)[which(substring(data_long$Value,1,1)=="E")]
   
   data_long$Value <- as.numeric(data_long$Value) 
   
