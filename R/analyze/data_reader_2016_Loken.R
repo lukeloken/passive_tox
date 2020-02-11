@@ -21,7 +21,7 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   
   #Add replicate flag?
   
-  units <- names(data_wide)[-1:-2]
+  units <- names(data_wide)[-1]
   if(isTRUE(sum(grepl("pg/L", units)) == length(units))){
     convert <- 1000000
   } else if (isTRUE(sum(grepl("ng/L", units)) == length(units))){
@@ -92,10 +92,14 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   
   data_long$Value <- as.numeric(data_long$Value) 
   
+  #Convert units
+  data_long$Value <- data_long$Value/convert
+  data_long$MDL <- data_long$MDL/convert
+  
   #For value below minimum detection, set value to zero
   data_long$Value[which(data_long$Value - data_long$MDL <= 0)] = 0
   
-  data_long$Value <- data_long$Value/convert
+  
   data_long$generic_class <- 'pesticide'
   data_long$`Sample Date` <- year
   data_long$SiteID <- gsub("site ","",data_long$SiteID, ignore.case = TRUE)
