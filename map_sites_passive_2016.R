@@ -154,7 +154,7 @@ lakes <- st_read(lakespath, layer="Great_Lakes")
 
 # set the state and county names of interest
 state_names <- c("minnesota","wisconsin", "michigan","ohio",
-                 "illinois","pennsylvania","new york","indiana")
+                 "illinois","pennsylvania","new york","indiana", "west virginia")
 
 # get STATE data
 GL <- us_states(resolution = "high", states = state_names) %>%
