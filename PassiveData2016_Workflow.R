@@ -12,6 +12,7 @@ path_to_data <- c('C:/Users/lloken/DOI/Corsi, Steven R - GLRI CECs/2016/Manuscri
 
 #load libraries
 library(gridExtra)
+library(RColorBrewer)
 
 #load custom functions
 source('R/functions/g_legend.R')
