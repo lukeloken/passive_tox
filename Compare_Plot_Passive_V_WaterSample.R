@@ -200,3 +200,33 @@ ggplot(chemicalSummary_merged_hits) +
   theme_bw() +
   theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank())
 
+
+
+
+
+
+#using figures from "Plot_SurfaceTox_2016" and "Plot_PassiveTox_2016" make a combined EAR and TQ figure
+
+
+EARbox_passive_v2 <- EARbox_passive +
+  # scale_x_discrete(position = 'top') 
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+  ggtitle('Passive Samples') +
+  theme(plot.title = element_text(hjust = 0.5))
+  
+EARbox_surface_v2 <- EARbox_surface +
+  theme(axis.text.y = element_text(hjust=0.5), axis.ticks.y = element_blank()) +
+  ggtitle('Surface Water Samples') +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+box_by_box_EAR <- grid.arrange(grobs=list(EARbox_passive_v2, EARbox_surface_v2), nrow=1)
+
+
+
+png(file.path(path_to_data, "Figures/EAR_Passive_V_WaterSample_Boxplot.png"), height=6, width=5, units='in', res=400)
+
+grid.newpage()
+boxes_EAR<-grid.draw(cbind(ggplotGrob(EARbox_passive_v2), ggplotGrob(EARbox_surface_v2), size = "first"))
+
+dev.off()
