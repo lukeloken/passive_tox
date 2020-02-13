@@ -32,11 +32,18 @@ chem_freq_allpocis<-chemicalSummary_allpocis %>%
 chemicalSummary2 <- chemicalSummary %>%
   filter(EAR>0) %>%
   dplyr::group_by(site, chnm) %>% 
-  summarize(EAR = max(EAR, na.rm=T))
+  summarize(EAR = max(EAR, na.rm=T)) %>%
+  arrange(desc(EAR))
+
+chem_freq_EAR0.01<-chemicalSummary2 %>%
+  group_by(chnm, site) %>%
+  filter(EAR >= 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.01")
 
 chem_freq_EAR0.001<-chemicalSummary2 %>%
   group_by(chnm, site) %>%
-  filter(EAR >= 0.001) %>%
+  filter(EAR >= 0.001 & EAR < 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.001")
 
@@ -46,11 +53,12 @@ chem_freq_EAR0.0001<-chemicalSummary2 %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.0001")
 
-chem_detection <- full_join(chem_freq_EAR0.001, chem_freq_EAR0.0001) %>%
+chem_detection <- full_join(chem_freq_EAR0.01, chem_freq_EAR0.001) %>%
+  full_join(chem_freq_EAR0.0001) %>%
   full_join(chem_freq_allpocis) %>%
   left_join(unique(chemicalSummary_allpocis[c("chnm", "Class")])) %>%
   rowwise() %>%
-  mutate(EAR_total = sum(AboveEAR0.001, AboveEAR0.0001, na.rm=T),
+  mutate(EAR_total = sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, na.rm=T),
          OnlyDetected = Detected - EAR_total,
          chnm = as.character(chnm)) %>%
   select(-Detected, -EAR_total )
@@ -62,10 +70,10 @@ chem_detection$Class <- gsub("Deg - ", "", chem_detection$Class)
 
 chem_detection <- chem_detection %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
-  arrange(Class, desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(OnlyDetected)) %>%
+  arrange(Class, desc(AboveEAR0.01), desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(OnlyDetected)) %>%
   tidyr::gather(key=group, value=value, -chnm, -Class) %>%
   mutate(chnm = factor(chnm, levels=unique(chnm)), 
-         group = factor(group, levels=rev(c("AboveEAR0.001", "AboveEAR0.0001", "OnlyDetected"))))
+         group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "OnlyDetected"))))
 
 chem_detection$value[which(is.na(chem_detection$value))] <- 0
 
@@ -77,9 +85,15 @@ chemicalSummary_bench2 <- chemicalSummary_bench %>%
   dplyr::group_by(site, chnm) %>% 
   summarize(EAR = max(EAR, na.rm=T))
 
+chem_freq_TQ1<-chemicalSummary_bench2 %>%
+  group_by(chnm, site) %>%
+  filter(EAR >= 1) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveTQ1")
+
 chem_freq_TQ0.1<-chemicalSummary_bench2 %>%
   group_by(chnm, site) %>%
-  filter(EAR >= 0.1) %>%
+  filter(EAR >= 0.1 & EAR < 1) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ0.1")
 
@@ -89,11 +103,12 @@ chem_freq_TQ0.01<-chemicalSummary_bench2 %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ0.01")
 
-TQ_detection <- full_join(chem_freq_TQ0.1, chem_freq_TQ0.01) %>%
+TQ_detection <- full_join(chem_freq_TQ1, chem_freq_TQ0.1) %>%
+  full_join(chem_freq_TQ0.01) %>%
   full_join(chem_freq_allpocis) %>%
   left_join(unique(chemicalSummary_allpocis[c("chnm", "Class")])) %>%
   rowwise() %>%
-  mutate(EAR_total = sum(AboveTQ0.01, AboveTQ0.1, na.rm=T),
+  mutate(EAR_total = sum(AboveTQ1, AboveTQ0.01, AboveTQ0.1, na.rm=T),
          OnlyDetected = Detected - EAR_total,
          chnm = as.character(chnm)) %>%
   select(-Detected, -EAR_total )
@@ -107,7 +122,7 @@ TQ_detection <- TQ_detection %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
   tidyr::gather(key=group, value=value, -chnm, -Class) %>%
   mutate(chnm = factor(chnm, levels=levels(chem_detection$chnm)), 
-         group = factor(group, levels=rev(c("AboveTQ0.1", "AboveTQ0.01", "OnlyDetected"))))
+         group = factor(group, levels=rev(c("AboveTQ1", "AboveTQ0.1", "AboveTQ0.01", "OnlyDetected"))))
 
 TQ_detection$value[which(is.na(TQ_detection$value))] <- 0
 
@@ -115,6 +130,9 @@ TQ_detection$value[which(is.na(TQ_detection$value))] <- 0
 # ########################################
 # Plot frequency of chemical and EAR/TQ by chemical
 # ########################################
+
+#Make color ramp
+colors_EAR <- brewer.pal(n = 9, name = "YlOrRd")[c(2,4,7,9)]
 
 #Plot barplot by chemical 
 chemicalbyEAR2 <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) + 
@@ -129,8 +147,9 @@ chemicalbyEAR2 <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) 
         axis.title.x=element_blank(),
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
-        axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+        axis.text.y = element_text(size=8)) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
@@ -156,7 +175,8 @@ chemicalbyEAR2_horiztonal <- ggplot(data=chem_detection, aes(x=chnm, y=value, fi
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
@@ -182,7 +202,8 @@ TQ_detection2 <- ggplot(data=TQ_detection , aes(x=chnm, y=value, fill=group)) +
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")))) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
+  #   scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
@@ -206,10 +227,16 @@ site_freq_allpocis<-chemicalSummary_allpocis %>%
   dplyr::summarize(EAR_mean = mean(EAR, na.rm=T)) %>%
   tally(name = "Detected")
 
+site_freq_EAR0.01<-chemicalSummary2 %>%
+  group_by(site, chnm) %>%
+  filter(EAR >= 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.01")
+
 
 site_freq_EAR0.001<-chemicalSummary2 %>%
   group_by(site, chnm) %>%
-  filter(EAR >= 0.001) %>%
+  filter(EAR >= 0.001 & EAR < 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.001")
 
@@ -221,11 +248,12 @@ site_freq_EAR0.0001<-chemicalSummary2 %>%
 
 
 
-site_detection <- full_join(site_freq_EAR0.001, site_freq_EAR0.0001) %>%
+site_detection <- full_join(site_freq_EAR0.01, site_freq_EAR0.001) %>%
+  full_join(site_freq_EAR0.0001) %>%
   full_join(site_freq_allpocis) %>%
   left_join(unique(chemicalSummary[c("site", "shortName", "Lake")])) %>%
   rowwise() %>%
-  mutate(EAR_total = sum(AboveEAR0.001, AboveEAR0.0001, na.rm=T),
+  mutate(EAR_total = sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, na.rm=T),
          OnlyDetected = Detected - EAR_total,
          Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")),
          shortName = factor(shortName, site_order)) %>%
@@ -234,9 +262,9 @@ site_detection <- full_join(site_freq_EAR0.001, site_freq_EAR0.0001) %>%
 
 
 site_detection <- site_detection %>%
-  arrange(Lake, desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(OnlyDetected)) %>%
+  arrange(Lake, desc(AboveEAR0.01), desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(OnlyDetected)) %>%
   tidyr::gather(key=group, value=value, -site, -shortName, -Lake) %>%
-  mutate(group = factor(group, levels=rev(c("AboveEAR0.001", "AboveEAR0.0001", "OnlyDetected"))))
+  mutate(group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "OnlyDetected"))))
 
 site_detection$value[which(is.na(site_detection$value))] <- 0
 
@@ -255,7 +283,8 @@ sitebyEAR2 <- ggplot(data=site_detection, aes(x=shortName, y=value, fill=group))
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(limits=c(0,35.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
@@ -275,79 +304,79 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_BySite2.png")), 
 #########################################################################
 #summarize and organize EAR and TQ for side by side horizontal boxplots
 #some of this code should be eliminated as it is repeated above
-chemicalSummary3 <- chemicalSummary %>%
+chemicalSummary3_passive <- chemicalSummary %>%
   mutate(chnm = as.character(chnm))
-chemicalSummary3$chnm[which(chemicalSummary3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
-  paste0(chemicalSummary3$chnm[which(chemicalSummary3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
-chemicalSummary3$Class <- gsub("Deg - ", "", chemicalSummary3$Class)
+chemicalSummary3_passive$chnm[which(chemicalSummary3_passive$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
+  paste0(chemicalSummary3_passive$chnm[which(chemicalSummary3_passive$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
+chemicalSummary3_passive$Class <- gsub("Deg - ", "", chemicalSummary3_passive$Class)
 
-chemicalSummary3 <- chemicalSummary3 %>%
+chemicalSummary3_passive <- chemicalSummary3_passive %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
   arrange((Class), desc(EAR)) 
 
-chemicalSummary3_maxbySite <- chemicalSummary3 %>%
+chemicalSummary3_passive_maxbySite <- chemicalSummary3_passive %>%
   group_by(chnm, site, Class) %>%
   summarize(EAR = max(EAR)) %>%
   arrange(Class, chnm, (EAR)) 
 
-chemicalSummary3_medianAcrossSites <- chemicalSummary3_maxbySite %>%
+chemicalSummary3_passive_medianAcrossSites <- chemicalSummary3_passive_maxbySite %>%
   group_by(chnm, Class) %>%
   summarize(EAR = median(EAR[which(EAR>0)])) 
 
-chemicalSummary3_medianAcrossSites$EAR[which(is.na(chemicalSummary3_medianAcrossSites$EAR))] <-0
-chemicalSummary3_medianAcrossSites <- chemicalSummary3_medianAcrossSites  %>% 
+chemicalSummary3_passive_medianAcrossSites$EAR[which(is.na(chemicalSummary3_passive_medianAcrossSites$EAR))] <-0
+chemicalSummary3_passive_medianAcrossSites <- chemicalSummary3_passive_medianAcrossSites  %>% 
   arrange(desc(Class), (EAR))
 
-chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
+chemicalSummary3_passive_maxbySite <- chemicalSummary3_passive_maxbySite %>%
   group_by() %>%
-  mutate(chnm = factor(chnm, chemicalSummary3_medianAcrossSites$chnm)) %>%
+  mutate(chnm = factor(chnm, chemicalSummary3_passive_medianAcrossSites$chnm)) %>%
   arrange(Class, chnm, desc(EAR))
 
 #summarize and organize TQ
-chemicalSummary_bench3 <- chemicalSummary_bench %>%
+chemicalSummary_bench3_passive <- chemicalSummary_bench %>%
   mutate(chnm = as.character(chnm))
-chemicalSummary_bench3 $chnm[which(chemicalSummary_bench3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
-  paste0(chemicalSummary_bench3 $chnm[which(chemicalSummary_bench3$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
-chemicalSummary_bench3 $Class <- gsub("Deg - ", "", chemicalSummary_bench3 $Class)
+chemicalSummary_bench3_passive $chnm[which(chemicalSummary_bench3_passive$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
+  paste0(chemicalSummary_bench3_passive $chnm[which(chemicalSummary_bench3_passive$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))], "*")
+chemicalSummary_bench3_passive$Class <- gsub("Deg - ", "", chemicalSummary_bench3_passive$Class)
 
-chemicalSummary_bench3  <- chemicalSummary_bench3  %>%
+chemicalSummary_bench3_passive  <- chemicalSummary_bench3_passive  %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
   arrange((Class), desc(EAR)) 
 
-chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3  %>%
+chemicalSummary_bench3_passive_maxbySite <- chemicalSummary_bench3_passive  %>%
   group_by(chnm, site, Class) %>%
   summarize(EAR = max(EAR)) %>%
   arrange(Class, chnm, (EAR)) 
 
-chemicalSummary_bench3_medianAcrossSites <- chemicalSummary_bench3_maxbySite %>%
+chemicalSummary_bench3_passive_medianAcrossSites <- chemicalSummary_bench3_passive_maxbySite %>%
   group_by(chnm, Class) %>%
   summarize(EAR = median(EAR[which(EAR>0)])) 
 
-chemicalSummary_bench3_medianAcrossSites$EAR[which(is.na(chemicalSummary_bench3_medianAcrossSites$EAR))] <-0
-chemicalSummary_bench3_medianAcrossSites <- chemicalSummary_bench3_medianAcrossSites  %>% 
+chemicalSummary_bench3_passive_medianAcrossSites$EAR[which(is.na(chemicalSummary_bench3_passive_medianAcrossSites$EAR))] <-0
+chemicalSummary_bench3_passive_medianAcrossSites <- chemicalSummary_bench3_passive_medianAcrossSites  %>% 
   arrange(desc(Class), (EAR))
 
-chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3_maxbySite %>%
+chemicalSummary_bench3_passive_maxbySite <- chemicalSummary_bench3_passive_maxbySite %>%
   group_by() %>%
-  mutate(chnm = factor(chnm, chemicalSummary_bench3_medianAcrossSites$chnm)) %>%
+  mutate(chnm = factor(chnm, chemicalSummary_bench3_passive_medianAcrossSites$chnm)) %>%
   arrange(Class, chnm, desc(EAR))
 
 
 #combine chemical order
-chemorder2 <- rev(intersect(chemicalSummary3_medianAcrossSites$chnm, chemicalSummary_bench3_medianAcrossSites$chnm))
+chemorder2 <- rev(intersect(chemicalSummary3_passive_medianAcrossSites$chnm, chemicalSummary_bench3_passive_medianAcrossSites$chnm))
 
-chemorder3 <- c(chemorder2, chemicalSummary3_medianAcrossSites$chnm[-which(chemicalSummary3_medianAcrossSites$chnm %in% chemorder2)], chemicalSummary_bench3_medianAcrossSites$chnm[-which(chemicalSummary_bench3_medianAcrossSites$chnm %in% chemorder2)])
+chemorder3 <- c(chemorder2, chemicalSummary3_passive_medianAcrossSites$chnm[-which(chemicalSummary3_passive_medianAcrossSites$chnm %in% chemorder2)], chemicalSummary_bench3_passive_medianAcrossSites$chnm[-which(chemicalSummary_bench3_passive_medianAcrossSites$chnm %in% chemorder2)])
 
-chemicalSummary3_maxbySite <- chemicalSummary3_maxbySite %>%
+chemicalSummary3_passive_maxbySite <- chemicalSummary3_passive_maxbySite %>%
   mutate(chnm = factor(chnm, rev(chemorder3))) %>%
   arrange(Class, chnm, desc(EAR))
 
-chemicalSummary_bench3_maxbySite <- chemicalSummary_bench3_maxbySite %>%
+chemicalSummary_bench3_passive_maxbySite <- chemicalSummary_bench3_passive_maxbySite %>%
   mutate(chnm = factor(chnm, rev(chemorder3))) %>%
   arrange(Class, chnm, desc(EAR))
 
 
-EARbox <- ggplot(chemicalSummary3_maxbySite, aes(x=chnm, y=EAR)) +
+EARbox_passive <- ggplot(chemicalSummary3_passive_maxbySite, aes(x=chnm, y=EAR)) +
   # geom_vline(xintercept = 4.5) +
   geom_hline(yintercept = .001, linetype=2) +
   geom_boxplot(aes(fill=Class)) +
@@ -360,7 +389,7 @@ EARbox <- ggplot(chemicalSummary3_maxbySite, aes(x=chnm, y=EAR)) +
   scale_fill_brewer(palette = 'Dark2')
 
 
-TQbox <- ggplot(chemicalSummary_bench3_maxbySite, aes(x=chnm, y=EAR)) +
+TQbox_passive <- ggplot(chemicalSummary_bench3_passive_maxbySite, aes(x=chnm, y=EAR)) +
   # geom_vline(xintercept = c(4.5)) +
   geom_hline(yintercept = .1, linetype=2) + 
   geom_boxplot(aes(fill=Class)) +
@@ -375,21 +404,21 @@ TQbox <- ggplot(chemicalSummary_bench3_maxbySite, aes(x=chnm, y=EAR)) +
   
 
 
-box_by_box <- grid.arrange(grobs=list(EARbox, TQbox), nrow=1, top='POCIS passive samples')
+box_by_box_passive <- grid.arrange(grobs=list(EARbox_passive, TQbox_passive), nrow=1, top='POCIS passive samples')
 
 
-TQ_box_withLegend <-TQbox + 
+TQ_box_passive_withLegend <-TQbox_passive + 
   theme(legend.position='bottom', legend.title = element_blank()) + 
   guides(color = guide_legend(nrow = 1, title.position='top', title.hjust=0.5)) 
 
-mylegend<-g_legend(TQ_box_withLegend)
+mylegend<-g_legend(TQ_box_passive_withLegend)
 
-rm(TQ_box_withLegend)
-
-
-boxes_withLegend<-grid.arrange(box_by_box, mylegend, nrow=2, heights=c(15,1))
+rm(TQ_box_withLegend_passive)
 
 
-ggsave(file_out(file.path(path_to_data, "Figures/SideBoxes_EARandTQ_ByChemical.png")), plot = boxes_withLegend, height=6, width=7)
+boxes_withLegend_passive<-grid.arrange(box_by_box_passive, mylegend, nrow=2, heights=c(15,1))
+
+
+ggsave(file_out(file.path(path_to_data, "Figures/SideBoxes_Passive_EARandTQ_ByChemical.png")), plot = boxes_withLegend_passive, height=6, width=7)
 
 
