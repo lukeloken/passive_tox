@@ -76,12 +76,12 @@ chemicalSummary_passive_prepped_spread <- chemicalSummary_passive_prepped %>%
   rename(passive = EAR) %>%
   select(-method, -CAS)
 
-chemicalSummary_passive_surface_spread <- chemicalSummary_surface_prepped %>%
+chemicalSummary_surface_prepped_spread <- chemicalSummary_surface_prepped %>%
   rename(surface = EAR) %>%
   select(-method, -CAS)
 
 #Spread each table before joining
-chemicalSummary_merged <- full_join(chemicalSummary_passive_surface_spread, chemicalSummary_passive_prepped_spread) 
+chemicalSummary_merged <- full_join(chemicalSummary_surface_prepped_spread, chemicalSummary_passive_prepped_spread) 
 
 chemicalSummary_merged$shortName = site_order[match(chemicalSummary_merged$site, site_ID_order)]
 
@@ -93,6 +93,8 @@ chemicalSummary_merged$Detected[AnyMDL] <- "belowMDL"
 # chemicalSummary_merged$Detected = "Detected"
 # chemicalSummary_merged$Detected[which(chemicalSummary_merged$passive==10^-7 | chemicalSummary_merged$water==10^-7)] <- 'belowMDL'
 
+chemicalSummary_merged$Class[which(chemicalSummary_merged$chnm %in% c("Dichlorvos"))] <- "Insecticide"
+
 chemicalSummary_merged$chnm[which(chemicalSummary_merged$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))] <- 
   paste0(chemicalSummary_merged$chnm[which(chemicalSummary_merged$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))], "*")
 chemicalSummary_merged$Class <- gsub("Deg - ", "", chemicalSummary_merged$Class)
@@ -100,9 +102,19 @@ chemicalSummary_merged$Class <- gsub("Deg - ", "", chemicalSummary_merged$Class)
 chemicalSummary_merged <- chemicalSummary_merged %>%
   group_by() %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide')),
-         chnm = factor(chnm, levels(chem_detection$chnm))) %>%
-  drop_na(chnm)
+         chnm = factor(chnm, chemorder1)) %>%
+  drop_na(chnm) 
 
+good_chems <-   chemicalSummary_merged %>%
+  group_by(site, chnm) %>%
+  summarize(surface = sum(surface, na.rm=T), 
+            passive = sum(passive, na.rm=T)) %>%
+  mutate(sumboth = surface + passive) %>%
+  filter(sumboth > 0)
+
+unique(good_chems$chnm)
+
+chemicalSummary_merged <- filter(chemicalSummary_merged, chnm %in% unique(good_chems$chnm))
 
 mainchems <- c('Diuron', 'Metolachlor', 'Atrazine', 'Deisopropylatrazine*', 'Acetochlor', 'Simazine', 'Prometon', 'Dimethenamid', 'Propazine', 'Metalaxyl', 'Azoxystrobin', 'Imidacloprid')
 
@@ -125,15 +137,15 @@ chemicalSummary_merged_mainchems <- chemicalSummary_merged %>%
          shortName = factor(shortName, site_order)) 
 
   
-ggplot(chemicalSummary_mainchems, aes(x=EAR)) +
-  scale_x_log10nice() + 
-  geom_vline(data=chemicalSummary_merged_mainchems, aes(xintercept=passive), col='blue', size=1.5) + 
-  geom_vline(data=chemicalSummary_merged_mainchems, aes(xintercept=surface), col='red', size=1.5, linetype='dotted') + 
-  # geom_vline(xintercept = .001) +
-  # geom_histogram(colour='black', fill='white') +
-  geom_density(alpha=.2, fill= '#FF6666') + 
-  facet_grid(shortName~chnm, scales = 'free') +
-  theme_bw()
+# ggplot(chemicalSummary_mainchems, aes(x=EAR)) +
+#   scale_x_log10nice() + 
+#   geom_vline(data=chemicalSummary_merged_mainchems, aes(xintercept=passive), col='blue', size=1.5) + 
+#   geom_vline(data=chemicalSummary_merged_mainchems, aes(xintercept=surface), col='red', size=1.5, linetype='dotted') + 
+#   # geom_vline(xintercept = .001) +
+#   # geom_histogram(colour='black', fill='white') +
+#   geom_density(alpha=.2, fill= '#FF6666') + 
+#   facet_grid(shortName~chnm, scales = 'free') +
+#   theme_bw()
 
 
 # ggplot(chemicalSummary_mainchems, aes(x=as.Date(date), y=EAR, col='#FF6666')) +
@@ -173,17 +185,20 @@ Scatterplot_passive_versus_water <- ggplot(chemicalSummary_merged, aes(x=passive
   geom_hline(yintercept = 10^-3) +
   geom_vline(xintercept = 10^-3) +
   geom_abline(linetype='dashed') +
-  geom_point(aes(shape=Detected), size=2,stroke=1.5, fill='white') +
+  geom_point(aes(shape=Detected), size=2,stroke=1.5, fill='white', alpha=.5) +
   scale_shape_manual(values=c(21,16)) +
   scale_color_brewer(palette = 'Dark2') +
-  facet_wrap(~chnm, ncol=4) +
+  facet_wrap(~chnm, ncol=6) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        legend.position='bottom', legend.title = element_blank()) 
+        legend.position='bottom', legend.title = element_blank(), 
+        axis.text=element_text(size=6), 
+        strip.text.x = element_text(size = 8, margin = margin(.1,0,.1,0, "cm"))) +
+  guides(color = guide_legend(override.aes = list(alpha = 1)))
 
 print(Scatterplot_passive_versus_water)
 
-ggsave(file_out(file.path(path_to_data, "Figures/Scatterplot_EAR_Passive_V_WaterSample.png")), Scatterplot_passive_versus_water, height=10, width=7, units='in')
+ggsave(file_out(file.path(path_to_data, "Figures/Scatterplot_EAR_Passive_V_WaterSample.png")), Scatterplot_passive_versus_water, height=7, width=8, units='in')
 
 
 
@@ -207,18 +222,51 @@ ggplot(chemicalSummary_merged_hits) +
 
 #using figures from "Plot_SurfaceTox_2016" and "Plot_PassiveTox_2016" make a combined EAR and TQ figure
 
+chemicalSummary3_passive_maxbySite_order1 <- chemicalSummary3_passive_maxbySite %>%
+  group_by() %>%
+  mutate(chnm = factor(chnm, rev(chemorder1)))
 
-EARbox_passive_v2 <- EARbox_passive +
+chemicalSummary3_surface_maxbySite_order1 <- chemicalSummary3_surface_maxbySite %>%
+  mutate(chnm = factor(chnm, rev(chemorder1)))
+
+give.n <- function(x){
+  return(c(y = median(x)*1.05, label = length(x))) 
+  # experiment with the multiplier to find the perfect position
+}
+
+
+EARbox_passive_v2 <- ggplot(chemicalSummary3_passive_maxbySite_order1, aes(x=chnm, y=EAR)) +
+  # geom_vline(xintercept = 4.5) +
+  geom_hline(yintercept = .001, linetype=2) +
+  geom_boxplot(aes(fill=Class), outlier.shape=21, outlier.size=1) +
+  theme_bw() +
+  scale_y_log10nice(name = 'max (EAR)') +
+  scale_x_discrete(drop = F) +
+  coord_flip() +
+  theme(legend.position='none', axis.title.y=element_blank(), panel.grid.minor = element_blank(),
+        axis.text.x = element_text(size=8), axis.text.y = element_text(size=8)) +
+  scale_fill_brewer(palette = 'Dark2') + 
   # scale_x_discrete(position = 'top') 
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
   ggtitle('Passive Samples') +
   theme(plot.title = element_text(hjust = 0.5))
   
-EARbox_surface_v2 <- EARbox_surface +
+
+
+EARbox_surface_v2 <- ggplot(chemicalSummary3_surface_maxbySite_order1, aes(x=chnm, y=EAR)) +
+  # geom_vline(xintercept = 4.5) +
+  geom_hline(yintercept = .001, linetype=2) +
+  geom_boxplot(aes(fill=Class), outlier.shape=21, outlier.size=1) +
+  theme_bw() +
+  scale_y_log10nice(name = 'max (EAR)') +
+  scale_x_discrete(drop = F) +
+  coord_flip() +
+  theme(legend.position='none', axis.title.y=element_blank(), panel.grid.minor = element_blank(),
+        axis.text.x = element_text(size=8), axis.text.y = element_text(size=8)) +
+  scale_fill_brewer(palette = 'Dark2') +
   theme(axis.text.y = element_text(hjust=0.5), axis.ticks.y = element_blank()) +
   ggtitle('Surface Water Samples') +
-  theme(plot.title = element_text(hjust = 0.5))
-
+  theme(plot.title = element_text(hjust = 0.5)) 
 
 box_by_box_EAR <- grid.arrange(grobs=list(EARbox_passive_v2, EARbox_surface_v2), nrow=1)
 

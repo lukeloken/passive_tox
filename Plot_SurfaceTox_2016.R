@@ -34,9 +34,15 @@ chemicalSummary2_surface <- chemicalSummary_surface %>%
   dplyr::group_by(site, chnm) %>%
   summarize(EAR=mean(EAR, na.rm=T))
 
+chem_freq_EAR0.01<-chemicalSummary2_surface %>%
+  group_by(chnm, site) %>%
+  filter(EAR >= 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.01")
+
 chem_freq_EAR0.001<-chemicalSummary2_surface %>%
   group_by(chnm, site) %>%
-  filter(EAR >= 0.001) %>%
+  filter(EAR >= 0.001 & EAR < 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.001")
 
@@ -53,7 +59,8 @@ chem_freq_Detected<-chemicalSummary2_surface %>%
   tally(name = "Detected")
 
 
-chem_detection <- full_join(chem_freq_EAR0.001, chem_freq_EAR0.0001) %>%
+chem_detection <- full_join(chem_freq_EAR0.01, chem_freq_EAR0.001) %>%
+  full_join(chem_freq_EAR0.0001) %>%
   full_join(chem_freq_Detected) %>%
   left_join(unique(chemicalSummary_surface[c("chnm", "Class")])) %>%
   rowwise() %>%
@@ -66,10 +73,10 @@ chem_detection$Class <- gsub("Deg - ", "", chem_detection$Class)
 
 chem_detection <- chem_detection %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
-  arrange(Class, desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(Detected)) %>%
+  arrange(Class, desc(AboveEAR0.01), desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(Detected)) %>%
   tidyr::gather(key=group, value=value, -chnm, -Class) %>%
   mutate(chnm = factor(chnm, levels=unique(chnm)), 
-         group = factor(group, levels=rev(c("AboveEAR0.001", "AboveEAR0.0001", "Detected"))))
+         group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "Detected"))))
 
 chem_detection$value[which(is.na(chem_detection$value))] <- 0
 
@@ -96,9 +103,16 @@ chemicalSummary_bench2 <- chemicalSummary_bench_surface %>%
   dplyr::group_by(site, chnm) %>% 
   summarize(EAR = max(EAR, na.rm=T))
 
+chem_freq_TQ1<-chemicalSummary_bench2 %>%
+  group_by(chnm, site) %>%
+  filter(EAR >= 1) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveTQ1")
+
+
 chem_freq_TQ0.1<-chemicalSummary_bench2 %>%
   group_by(chnm, site) %>%
-  filter(EAR >= 0.1) %>%
+  filter(EAR >= 0.1 & EAR<1) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ0.1")
 
@@ -114,14 +128,16 @@ chem_freq_TQDetected<-chemicalSummary_bench2 %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "Detected")
 
-TQ_detection <- full_join(chem_freq_TQ0.1, chem_freq_TQ0.01) %>%
+TQ_detection <- full_join(chem_freq_TQ1, chem_freq_TQ0.1) %>%
+  full_join(chem_freq_TQ0.01) %>%
   full_join(chem_freq_TQDetected) %>%
   full_join(chem_freq_all) %>% 
   left_join(unique(chemicalSummary_surface[c("chnm", "Class")])) %>%
   rowwise() %>%
-  mutate(TQ_total = sum(AboveTQ0.01, AboveTQ0.1, Detected, na.rm=T),
-         Diff = EARDetected - TQ_total,
-         chnm = as.character(chnm)) 
+  mutate(EAR_total = sum(AboveTQ1, AboveTQ0.01, AboveTQ0.1, na.rm=T),
+         OnlyDetected = Detected - EAR_total,
+         chnm = as.character(chnm)) %>%
+  select(-Detected, -EAR_total )
 
 TQ_detection$Detected[which(TQ_detection$Diff > 0)] <- TQ_detection$EARDetected[which(TQ_detection$Diff > 0)]
 
@@ -138,7 +154,7 @@ TQ_detection <- TQ_detection %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
   tidyr::gather(key=group, value=value, -chnm, -Class) %>%
   mutate(chnm = factor(chnm, levels=levels(chem_detection$chnm)), 
-         group = factor(group, levels=rev(c("AboveTQ0.1", "AboveTQ0.01", "Detected")))) %>%
+         group = factor(group, levels=rev(c("AboveTQ1", "AboveTQ0.1", "AboveTQ0.01", "Detected")))) %>%
   filter (!is.na(chnm))
 
 TQ_detection$value[which(is.na(TQ_detection$value))] <- 0
@@ -162,7 +178,8 @@ chemicalbyEAR2 <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) 
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
@@ -216,7 +233,8 @@ TQ_detection2 <- ggplot(data=TQ_detection , aes(x=chnm, y=value, fill=group)) +
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")))) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
