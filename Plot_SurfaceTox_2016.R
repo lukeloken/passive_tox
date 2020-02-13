@@ -134,10 +134,9 @@ TQ_detection <- full_join(chem_freq_TQ1, chem_freq_TQ0.1) %>%
   full_join(chem_freq_all) %>% 
   left_join(unique(chemicalSummary_surface[c("chnm", "Class")])) %>%
   rowwise() %>%
-  mutate(EAR_total = sum(AboveTQ1, AboveTQ0.01, AboveTQ0.1, na.rm=T),
-         OnlyDetected = Detected - EAR_total,
-         chnm = as.character(chnm)) %>%
-  select(-Detected, -EAR_total )
+  mutate(TQ_total = sum(AboveTQ1, AboveTQ0.1, AboveTQ0.01, Detected, na.rm=T),
+         Diff = EARDetected - TQ_total,
+         chnm = as.character(chnm))
 
 TQ_detection$Detected[which(TQ_detection$Diff > 0)] <- TQ_detection$EARDetected[which(TQ_detection$Diff > 0)]
 
