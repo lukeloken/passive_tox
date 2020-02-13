@@ -363,6 +363,8 @@ chemicalSummary_bench3_passive_maxbySite <- chemicalSummary_bench3_passive_maxby
 
 
 #combine chemical order
+chemorder1 <- rev(chemicalSummary3_passive_medianAcrossSites$chnm)
+
 chemorder2 <- rev(intersect(chemicalSummary3_passive_medianAcrossSites$chnm, chemicalSummary_bench3_passive_medianAcrossSites$chnm))
 
 chemorder3 <- c(chemorder2, chemicalSummary3_passive_medianAcrossSites$chnm[-which(chemicalSummary3_passive_medianAcrossSites$chnm %in% chemorder2)], chemicalSummary_bench3_passive_medianAcrossSites$chnm[-which(chemicalSummary_bench3_passive_medianAcrossSites$chnm %in% chemorder2)])
