@@ -33,7 +33,49 @@ site_ID_order <- unique(chemicalSummary$site)
 
 
 
+#Create csv for publication
+#Chemicals included in analysis
+chemicals_in <- WW_2016_forToxEval %>%
+  group_by(CAS, chnm) %>%
+  select(chnm, CAS, Value) %>%
+  filter(Value > 0) %>%
+  tally(name = 'Detections') %>%
+  full_join(WW_2016_forToxEval[,c('chnm', 'CAS')]) %>%
+  distinct() %>%
+  arrange(chnm) %>%
+  left_join(cas_df[,c('CAS', 'Class')]) %>%
+  filter(Class !="")
 
+chemicals_in$Detections[is.na(chemicals_in$Detections)] <- 0
+
+chemicals_out <- chemicalSummary %>%
+  group_by(Class, chnm, CAS, site) %>%
+  select(Class, chnm, CAS, EAR, site) %>%
+  summarize(EAR = max(EAR, na.rm=T)) %>%
+  filter(EAR > 0) %>%
+  tally(name = 'Detections') %>%
+  full_join(unique(chemicalSummary[,c('chnm', 'CAS', 'Class')])) %>%
+  distinct() %>%
+  arrange(Class, desc(Detections), as.character(chnm))
+
+chemicals_out$Detections[is.na(chemicals_out$Detections)] <- 0
+
+missing_ToxCast <- setdiff(chemicals_in$CAS, chemicals_out$CAS)
+
+chemicals_in[chemicals_in$CAS %in% missing_ToxCast,]
+
+chemicals_combine <- chemicals_in %>%
+  filter(CAS %in% missing_ToxCast) %>%
+  bind_rows(chemicals_out) %>%
+  mutate(Class = factor(Class, c('Herbicide', 'Deg - Herbicide', 'Fungicide', 'Deg - Fungicide', 'Insecticide', 'Deg - Insecticide'))) %>%
+  select(Class, chnm, CAS, Detections) %>%
+  arrange(Class, desc(Detections), chnm) 
+  
+  
+
+write.csv(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.csv")), row.names=F)
+
+write.table(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.txt")), row.names=F, sep=',')
 
 ###############################################################
 # all pocis data
