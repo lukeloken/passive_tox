@@ -202,6 +202,37 @@ sites_df <- st_as_sf(sites[, c("dec_long","dec_lat", 'chemicals', 'EAR')],
 
 sites_proj <- st_transform(sites_df, crs = crs_plot)
 
+sites_out <- sites %>%
+  select('Short Name', site_grouping, site_no, dec_lat, dec_long, AREA_KM2, perAg, perUrban, perForest, perWetlan, Date_in, Date_out) %>%
+  mutate(perAg = round(perAg*100,1), 
+         perUrban = round(perUrban*100,1), 
+         perForest = round(perForest*100,1), 
+         perWetlan = round(perWetlan*100,1),
+         dec_lat = round(dec_lat, 3),
+         dec_long = round(dec_long, 3),
+         AREA_KM2 = round(AREA_KM2, 0),
+         site_no = factor(site_no, site_ID_order),
+         "POCIS deploy duration (d)" = Date_out - Date_in) %>%
+  arrange(site_no) %>%
+  mutate(site_no = paste0("'", as.character(site_no))) %>%
+  rename("Stream Name" = "Short Name",
+         "State" = site_grouping,
+         "USGS Site ID" = site_no,
+         Latitude = 'dec_lat', 
+         Longitude = 'dec_long',
+         "Watershed Area" = 'AREA_KM2',
+         "% Agriculture" = perAg,
+         "% Urban" = perUrban,
+         "% Forest" = perForest,
+         "% Wetland" = perWetlan,
+         "POCIS deployed" = Date_in,
+         "POCIS retrieved" = Date_out)
+
+data.frame(sites_out)
+
+
+write.csv(sites_out, file = file_out(file.path(path_to_data, "Data/Site_characterisitcs.csv")), row.names=F)
+
 # minneapolis <- data.frame(longitude = -93.273882, 
 #                           latitude = 44.969226)
 # minneapolis <- st_as_sf(minneapolis, coords = c('longitude', 'latitude'), 
