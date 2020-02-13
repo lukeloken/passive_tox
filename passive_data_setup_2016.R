@@ -95,10 +95,20 @@ AllPOCIS_forToxEval <- AllPOCIS_2016 %>%
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
 
 sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
-  rename(site_no = `USGS Station ID`) %>%
+  rename(site_no = `USGS Station ID`,
+         Date_in = Date...6,
+         Time_in = Time...7,
+         Date_out = Date...8,
+         Time_out = Time...9) %>%
+  mutate(Time_in = str_pad(Time_in, 4, pad = "0"),
+         Time_out = str_pad(Time_out, 4, pad = "0"),
+         Date_in = as.Date(Date_in),
+         Date_out = as.Date(Date_out)) %>%
+  mutate(Datetime_in = as.POSIXct(paste(Date_in, Time_in), format="%Y-%m-%d %H%M"),
+         Datetime_out = as.POSIXct(paste(Date_out, Time_out), format="%Y-%m-%d %H%M")) %>%
   # mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
-  select(`Short Name`, `site_no`, Lake)
-  
+  select(`Short Name`, `site_no`, Lake, Date_in, Date_out, Datetime_in, Datetime_out)
+
 locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va", 'station_nm')]
 names(locations) <- c("site_no", 'dec_lat', 'dec_long', 'site_grouping')
 locations$site_grouping <- str_sub(locations$site_grouping,-2,-1)
