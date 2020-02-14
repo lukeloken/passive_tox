@@ -246,6 +246,94 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByTQ_Bychem2_watersamp
 
 
 
+#Make similar figure for all chemicals in surface water dataset
+
+chemicalSummary2_surface_all <- chemicalSummary_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
+  filter(EAR>0) %>%
+  # filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
+  filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
+  dplyr::group_by(site, chnm, date) %>% 
+  summarize(EAR = max(EAR, na.rm=T)) %>%
+  dplyr::group_by(site, chnm) %>%
+  summarize(EAR=mean(EAR, na.rm=T))
+
+chem_freq_EAR0.01_all<-chemicalSummary2_surface_all %>%
+  group_by(chnm, site) %>%
+  filter(EAR >= 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.01")
+
+chem_freq_EAR0.001_all<-chemicalSummary2_surface_all %>%
+  group_by(chnm, site) %>%
+  filter(EAR >= 0.001 & EAR < 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.001")
+
+chem_freq_EAR0.0001_all<-chemicalSummary2_surface_all %>%
+  group_by(chnm, site) %>%
+  filter(EAR < 0.001 & EAR >= 0.0001) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.0001")
+
+chem_freq_Detected_all<-chemicalSummary2_surface_all %>%
+  group_by(chnm, site) %>%
+  filter(EAR < 0.0001) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "Detected")
+
+
+chem_detection_all <- full_join(chem_freq_EAR0.01_all, chem_freq_EAR0.001_all) %>%
+  full_join(chem_freq_EAR0.0001_all) %>%
+  full_join(chem_freq_Detected_all) %>%
+  left_join(unique(chemicalSummary_surface[c("chnm", "Class")])) %>%
+  rowwise() %>%
+  mutate(chnm = as.character(chnm)) 
+
+
+chem_detection_all$chnm[which(chem_detection_all$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))] <- 
+  paste0(chem_detection_all$chnm[which(chem_detection_all$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))], "*")
+chem_detection_all$Class <- gsub("Deg - ", "", chem_detection_all$Class)
+
+chem_detection_all <- chem_detection_all %>%
+  mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
+  arrange(Class, desc(AboveEAR0.01), desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(Detected)) %>%
+  tidyr::gather(key=group, value=value, -chnm, -Class) %>%
+  mutate(chnm = factor(chnm, levels=unique(chnm)), 
+         group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "Detected"))))
+
+chem_detection_all$value[which(is.na(chem_detection_all$value))] <- 0
+
+
+
+#Plot barplot by chemical all chemicals
+chemicalbyEAR2_all <- ggplot(data=chem_detection_all, aes(x=chnm, y=value, fill=group)) + 
+  geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
+  # coord_flip() +
+  facet_grid(.~Class, space="free", scales="free") +
+  labs(x='Chemical', y='Number of streams', fill = 'EAR') + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=.5),
+        axis.title.x=element_blank(),
+        legend.title = element_blank(),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8)) + 
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
+  theme(legend.position = 'bottom') +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
+  ggtitle(paste0("Surface water samples (all chemicals): ", date_filter[1], " to ", date_filter[2]))
+
+print(chemicalbyEAR2_all)
+
+ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByEAR_Bychem2_watersamples_allchemicals.png")), plot = chemicalbyEAR2_all, height=4, width=6)
+
+
+
 
 
 # #######################
