@@ -252,10 +252,15 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByTQ_Bychem2_watersamp
 # Summarize EAR by site
 # #######################
 
+site_freq_EAR0.01<-chemicalSummary2_surface %>%
+  group_by(site, chnm) %>%
+  dplyr::filter(EAR >= 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.01")
 
 site_freq_EAR0.001<-chemicalSummary2_surface %>%
   group_by(site, chnm) %>%
-  dplyr::filter(EAR >= 0.001) %>%
+  dplyr::filter(EAR >= 0.001 & EAR < 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.001")
 
@@ -274,7 +279,8 @@ site_freq_EARDetected<-chemicalSummary2_surface %>%
 site_table <- unique(chemicalSummary_surface[c('shortName', 'site')])
 site_order_surface <- site_table$shortName[match(site_ID_order, site_table$site)]
 
-site_detection <- full_join(site_freq_EAR0.001, site_freq_EAR0.0001) %>%
+site_detection <- full_join(site_freq_EAR0.01, site_freq_EAR0.001) %>%
+  full_join(site_freq_EAR0.0001) %>%
   full_join(site_freq_EARDetected) %>%
   left_join(unique(chemicalSummary_surface[c("site", "shortName", "Lake")])) %>%
   rowwise() %>%
@@ -284,9 +290,9 @@ site_detection <- full_join(site_freq_EAR0.001, site_freq_EAR0.0001) %>%
 
 
 site_detection <- site_detection %>%
-  arrange(Lake, desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(EARDetected)) %>%
+  arrange(Lake, desc(AboveEAR0.01),desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(EARDetected)) %>%
   tidyr::gather(key=group, value=value, -site, -shortName, -Lake) %>%
-  mutate(group = factor(group, levels=rev(c("AboveEAR0.001", "AboveEAR0.0001", "EARDetected"))))
+  mutate(group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "EARDetected"))))
 
 site_detection$value[which(is.na(site_detection$value))] <- 0
 
@@ -305,11 +311,13 @@ sitebyEAR2 <- ggplot(data=site_detection, aes(x=shortName, y=value, fill=group))
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(limits=c(0,35.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
-  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
+  ggtitle(paste0("Surface water samples between ", date_filter[1], " and ", date_filter[2]))
 
 print(sitebyEAR2)
 
