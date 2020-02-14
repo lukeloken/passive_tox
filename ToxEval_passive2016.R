@@ -157,10 +157,15 @@ chemicals_combine<- full_join(chemicals_combine, chemicalSummary_EARHits) %>%
          'TQ hits' = TQ_Hits,
          'Chemical Name' = chnm)
 
+chemicals_combine$`EAR hits`[chemicals_combine$CAS %in% missing_ToxCast] <- "*"
+chemicals_combine$`TQ hits`[chemicals_combine$CAS %in% missing_TQ] <- "*"
+
+chemicals_combine$`EAR hits`[is.na(chemicals_combine$`EAR hits`)] <- ""
+chemicals_combine$`TQ hits`[is.na(chemicals_combine$`TQ hits`)] <- ""
 
 write.csv(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.csv")), row.names=F)
 
-write.table(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.txt")), row.names=F, sep=',')
+# write.table(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.txt")), row.names=F, sep=',')
 
 
 
