@@ -5,7 +5,7 @@
 # Surface data 
 # include all chemicals that match pocis chemicals and dates
 
-date_filter <-as.Date(c("2016-06-01", "2016-07-21"))
+date_filter <-as.Date(range(c(sites_2016$Date_in, sites_2016$Date_out)))
 
 tox_list_surface <- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides.xlsx")))
 # tox_list_surface$chem_site$site_grouping <- factor(tox_list_surface$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
