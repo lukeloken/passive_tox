@@ -20,6 +20,8 @@ tox_list_surface$chem_site <- tox_list_surface$chem_site %>%
   mutate(Lake = gsub("Lake ", "", Lake)) %>%
   mutate(`Short Name` = gsub('St', 'St. ', `Short Name`)) %>%
   mutate(`Short Name` = gsub('GrandMI', 'Grand', `Short Name`)) %>%
+  mutate(`Short Name` = gsub('IndianaHC', 'Indiana Harbor', `Short Name`)) %>%
+  mutate(`Short Name` = gsub('Vermillion', 'Vermilion', `Short Name`)) %>%
   left_join(tox_list$chem_site[,c("SiteID", 'site_grouping')]) 
 
 tox_list_surface$chem_info$Class[tox_list_surface$chem_info$CAS == '78-48-8'] = 'Herbicide'
