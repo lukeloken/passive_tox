@@ -326,6 +326,95 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_BySite2_watersam
 
 
 
+# #######################
+# Summarize EAR by site. All chemicals. Not just those with POCIS
+# #######################
+
+
+chemicalSummary2_surface_all <- chemicalSummary_surface %>%
+  filter(date>=date_filter[1], date<=date_filter[2]) %>%
+  filter(EAR>0) %>%
+  # filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
+  filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
+  dplyr::group_by(site, chnm, date) %>% 
+  summarize(EAR = max(EAR, na.rm=T)) %>%
+  dplyr::group_by(site, chnm) %>%
+  summarize(EAR=mean(EAR, na.rm=T))
+
+
+
+site_freq_EAR0.01_all<-chemicalSummary2_surface_all %>%
+  group_by(site, chnm) %>%
+  dplyr::filter(EAR >= 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.01")
+
+site_freq_EAR0.001_all<-chemicalSummary2_surface_all %>%
+  group_by(site, chnm) %>%
+  dplyr::filter(EAR >= 0.001 & EAR < 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.001")
+
+site_freq_EAR0.0001_all<-chemicalSummary2_surface_all %>%
+  group_by(site, chnm) %>%
+  dplyr::filter(EAR < 0.001, EAR >= 0.0001) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "AboveEAR0.0001")
+
+site_freq_EARDetected_all<-chemicalSummary2_surface_all %>%
+  group_by(site, chnm) %>%
+  dplyr::filter(EAR > 0 & EAR < 0.0001) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "EARDetected")
+
+site_table <- unique(chemicalSummary_surface[c('shortName', 'site')])
+site_order_surface <- site_table$shortName[match(site_ID_order, site_table$site)]
+
+site_detection_all <- full_join(site_freq_EAR0.01_all, site_freq_EAR0.001_all) %>%
+  full_join(site_freq_EAR0.0001_all) %>%
+  full_join(site_freq_EARDetected_all) %>%
+  left_join(unique(chemicalSummary_surface[c("site", "shortName", "Lake")])) %>%
+  rowwise() %>%
+  mutate(Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")),
+         shortName = factor(shortName, site_order_surface))
+
+
+
+site_detection_all <- site_detection_all %>%
+  arrange(Lake, desc(AboveEAR0.01),desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(EARDetected)) %>%
+  tidyr::gather(key=group, value=value, -site, -shortName, -Lake) %>%
+  mutate(group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "EARDetected"))))
+
+site_detection_all$value[which(is.na(site_detection_all$value))] <- 0
+
+
+
+#Plot barplot by site 
+sitebyEAR2_all <- ggplot(data=site_detection_all, aes(x=shortName, y=value, fill=group)) + 
+  geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
+  # coord_flip() +
+  facet_grid(.~Lake, space="free", scales="free") +
+  labs(x='Stream', y='Number of chemicals', fill = 'EAR') + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=.5),
+        legend.title = element_blank(),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8)) + 
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_y_continuous(limits=c(0,45), expand=c(0,0)) + 
+  theme(legend.position = 'bottom') +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
+  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
+  ggtitle(paste0("Surface water samples (all chemicals) between ", date_filter[1], " and ", date_filter[2]))
+
+print(sitebyEAR2_all)
+
+ggsave(file_out(file.path(path_to_data, "Figures/StackBox_ByEAR_BySite2_allchemicals_watersamples.png")), plot = sitebyEAR2_all, height=4, width=6)
+
+
 
 
 
