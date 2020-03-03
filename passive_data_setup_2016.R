@@ -117,7 +117,9 @@ locations$site_grouping <- str_sub(locations$site_grouping,-2,-1)
 sites_2016<-left_join(sites_2016, locations) %>%
   rename(SiteID = site_no) %>%
   filter(SiteID %in% unique(WW_2016_forToxEval$SiteID)) %>%
-  distinct()
+  distinct() %>%
+  group_by(`Short Name`, SiteID, Lake, site_grouping) %>%
+  summarize_all(.funs=mean)
 
 
 exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv"))
