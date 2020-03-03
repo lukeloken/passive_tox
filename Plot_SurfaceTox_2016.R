@@ -326,7 +326,7 @@ chemicalbyEAR2_all <- ggplot(data=chem_detection_all, aes(x=chnm, y=value, fill=
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
   theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
-  ggtitle(paste0("Surface water samples (all chemicals): ", date_filter[1], " to ", date_filter[2]))
+  ggtitle(paste0("Surface water (all chemicals): ", date_filter[1], " to ", date_filter[2]))
 
 print(chemicalbyEAR2_all)
 
@@ -405,7 +405,7 @@ sitebyEAR2 <- ggplot(data=site_detection, aes(x=shortName, y=value, fill=group))
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
   theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
-  ggtitle(paste0("Surface water samples between ", date_filter[1], " and ", date_filter[2]))
+  ggtitle(paste0("Surface water between ", date_filter[1], " and ", date_filter[2]))
 
 print(sitebyEAR2)
 
@@ -496,7 +496,7 @@ sitebyEAR2_all <- ggplot(data=site_detection_all, aes(x=shortName, y=value, fill
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
   theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
-  ggtitle(paste0("Surface water samples (all chemicals) between ", date_filter[1], " and ", date_filter[2]))
+  ggtitle(paste0("Surface water (all chemicals) between ", date_filter[1], " and ", date_filter[2]))
 
 print(sitebyEAR2_all)
 
