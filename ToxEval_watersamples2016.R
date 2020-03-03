@@ -32,7 +32,7 @@ tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID
 tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04085427")] <- 'WI'
 
 ACClong <- get_ACC(tox_list_surface$chem_info$CAS)
-ACClong <- remove_flags(ACClong)
+ACClong <- remove_flags(ACClong, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
 
 cleaned_ep <- clean_endPoint_info(end_point_info)
 filtered_ep <- filter_groups(cleaned_ep, 
