@@ -11,18 +11,20 @@ library(USAboundaries)
 library(ggsn)
 
 sites <- sites_2016 %>%
-  rename(site_no = SiteID)
+  rename(site_no = SiteID) %>%
+  group_by()
 
 # get info about number of chemicals by site, merge with sites
 nchems <- site_detection %>%
   group_by(site) %>%
-  summarize(chemicals = sum(value))
+  dplyr::summarize(chemicals = sum(value))
 
 graphData <- site_detection %>%
-  filter(group=='AboveEAR0.001') %>%
+  filter(group %in% c('AboveEAR0.001', 'AboveEAR0.01')) %>%
   dplyr::group_by(site) %>%
   dplyr::select(site, value) %>%
   rename(EAR = value) %>%
+  dplyr::summarize(EAR=sum(EAR)) %>%
   left_join(nchems) %>%
   data.frame()
 
@@ -247,8 +249,12 @@ write.csv(sites_out, file = file_out(file.path(path_to_data, "Data/Site_characte
 # Make a quick Map:
 
 #base_map <- 
+
+colors_EARmap <- brewer.pal(n = 9, name = "YlOrRd")[c(2,4,7,9)]
+
   
 first_pass <- ggplot() + 
+  # geom_sf(data = GL, color = NA, fill='gray90') +
   geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
   geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg`*100)) +
   # geom_sf(data = basins, alpha = 0.5, aes(fill = 'brown')) +
@@ -257,11 +263,12 @@ first_pass <- ggplot() +
   # scale_fill_brewer(palette = "Greens", name= "% Agriculture") +
   geom_sf(data = flowlines, color = "lightblue") +
   geom_sf(data = GL, color = "gray50", fill=NA) +
+  # geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
   geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
   geom_sf(data = sites_df, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
   scale_size(range = c(4,10), breaks = c(10,20,30), guide = 'legend') +
-  scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
-                       guide = 'colourbar') +
+  scale_color_gradientn(colours=colors_EARmap, breaks = c(0,2,4,6),
+                       guide = 'colourbar') + 
 
   # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
   # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
@@ -286,7 +293,7 @@ first_pass <- ggplot() +
                              override.aes = list(alpha = 1, stroke = 2), order = 2), 
          fill = guide_colourbar(title.position = 'top', order = 1), 
          color = guide_colorbar(title.position = 'top', order = 3, 
-                                title = '# Chemicals with\nEAR > 0.001')) +
+                                title = expression('# Chemicals with\nEAR > 0.001'))) +
   theme(legend.box = "horizontal") 
 
 first_pass
@@ -308,8 +315,8 @@ second_pass <- ggplot() +
   geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
   geom_sf(data = sites_df, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
   scale_size(range = c(4,10), breaks = c(10,20,30), guide = 'legend') +
-  scale_color_gradient(low = "#ffeda0", high = "#f03b20", breaks = c(0,5,10,15),
-                       guide = 'colourbar') +
+  scale_color_gradientn(colours=colors_EARmap, breaks = c(0,2,4,6),
+                        guide = 'colourbar') + 
   
   # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
   # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
@@ -339,7 +346,7 @@ second_pass <- ggplot() +
 
 second_pass
 
-ggsave(second_pass, filename = file_out(file.path(path_to_data, "Figures/site_map_UrbanPlusAg_nchems.png")), height = 6.5, width = 8)  
+ggsave(second_pass, filename = file_out(file.path(path_to_data, "Figures/site_map_UrbanPlusAg_nchems.png")), height = 6, width = 8)  
 
 
 
