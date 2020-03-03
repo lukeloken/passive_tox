@@ -1,5 +1,7 @@
 
-library(plyr)
+library(easypackages)
+from_import("plyr", "ddply")
+# library(plyr)
 
 basins_OGR <- readRDS( file_in(file.path(path_to_data, "Rdata/watershedmetrics.rds")))
 
