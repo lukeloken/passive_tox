@@ -1,4 +1,6 @@
 
+library(plyr)
+
 basins_OGR <- readRDS( file_in(file.path(path_to_data, "Rdata/watershedmetrics.rds")))
 
 sites <- sites_2016 %>%
@@ -10,10 +12,11 @@ nchems <- site_detection %>%
   summarize(chemicals = sum(value))
 
 graphData <- site_detection %>%
-  filter(group=='AboveEAR0.001') %>%
+  filter(group %in% c('AboveEAR0.001', 'AboveEAR0.01')) %>%
   dplyr::group_by(site) %>%
   dplyr::select(site, value) %>%
   rename(EAR = value) %>%
+  dplyr::summarize(EAR=sum(EAR)) %>%
   left_join(nchems) %>%
   data.frame()
 
@@ -122,20 +125,20 @@ print(scatter_v2)
 ggsave(file_out(file.path(path_to_data, "Figures/Scatter_Detections_bylanduse_v2.png")), plot = scatter_v2, height=4, width=4)
 
 
-scatter_v3 <- ggplot(data=graphData2, aes(x=perAgUrban, y=value, group=group, fill=group, color=group)) +
+scatter_v3 <- ggplot(data=graphData2, aes(x=perAgUrban, y=value, shape=group, group=group, fill=group, color=group)) +
   geom_smooth(method='lm', se=F, size=2) +
   # geom_polygon(data=hulls, alpha=.3) +
-  geom_point(size=2, pch=21, color='black', stroke=1) +
+  geom_point(size=2, color='black', stroke=1) +
   theme_bw() +
   labs(x='Percent agriculture + urban', y='Number of chemicals') +
   scale_fill_brewer(palette = "YlOrRd", labels=labels_EAR) +
   scale_color_brewer(palette = "YlOrRd", labels=labels_EAR) +
+  scale_shape_manual(values = c(21,22,24), labels=labels_EAR) + 
   theme(legend.position='bottom', legend.title = element_blank(),
         panel.grid.major=element_blank(), panel.grid.minor=element_blank()) +
   scale_alpha(guide = 'none') +
   scale_size(guide='none') +
   guides(color = guide_legend(override.aes = list(linetype = 0)))
-
 
 print(scatter_v3)
 
