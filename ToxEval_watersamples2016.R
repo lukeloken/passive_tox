@@ -1,20 +1,31 @@
 
-#Load all toxEval files and generate chemical summary for each
+#Load toxEval files and generate chemical summary for surface water pesticides
 
-############################################
-# Surface data 
-# include all chemicals that match pocis chemicals and dates
+# This is where the data are located on Luke's USGS computer
+# path_to_data <- c('C:/Users/lloken/DOI/Corsi, Steven R - GLRI CECs/2016/Manuscripts/Pesticides_passive')
 
-date_filter <-as.Date(range(c(sites_2016$Date_in, sites_2016$Date_out)))
+
+#Choose date filer
+# date_filter <-as.Date(range(c(sites_2016$Date_in, sites_2016$Date_out)))
+date_filter <- as.Date(c("2016-06-01", "2016-07-21")) #Passive deploy dates
 
 tox_list_surface <- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides.xlsx")))
 # tox_list_surface$chem_site$site_grouping <- factor(tox_list_surface$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
+#passive tox_list
+tox_list_passive<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/Passive2016_ToxEval.xlsx")))
+tox_list_passive$chem_site$site_grouping <- factor(tox_list_passive$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
 
-#Use exclusions from passive data file
-tox_list_surface$exclusions <- tox_list$exclusions
+#Combine exclusions
+exclusions <- tox_list_passive$exclusions %>%
+  dplyr::select(-chnm) %>%
+  bind_rows(tox_list_surface$exclusions) %>%
+  distinct()
 
+tox_list_surface$exclusions <- exclusions
+
+#Rename to match passive
 tox_list_surface$chem_site <- tox_list_surface$chem_site %>%
   rename(Lake = site_grouping) %>%
   mutate(Lake = gsub("Lake ", "", Lake)) %>%
@@ -22,15 +33,16 @@ tox_list_surface$chem_site <- tox_list_surface$chem_site %>%
   mutate(`Short Name` = gsub('GrandMI', 'Grand', `Short Name`)) %>%
   mutate(`Short Name` = gsub('IndianaHC', 'Indiana Harbor', `Short Name`)) %>%
   mutate(`Short Name` = gsub('Vermillion', 'Vermilion', `Short Name`)) %>%
-  left_join(tox_list$chem_site[,c("SiteID", 'site_grouping')]) 
+  left_join(tox_list_passive$chem_site[,c("SiteID", 'site_grouping')]) 
 
+#Manually change chemical classes and State IDs
 tox_list_surface$chem_info$Class[tox_list_surface$chem_info$CAS == '78-48-8'] = 'Herbicide'
-
 
 tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04157000")] <- 'MI'
 
 tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04085427")] <- 'WI'
 
+#Flag some ACCs
 ACClong <- get_ACC(tox_list_surface$chem_info$CAS)
 ACClong <- remove_flags(ACClong, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
 
@@ -42,7 +54,7 @@ filtered_ep <- filter_groups(cleaned_ep,
 chemicalSummary_surface <- get_chemical_summary(tox_list_surface, 
                                         ACClong, 
                                         filtered_ep)
-
+#Add groups to summary
 chemicalSummary_surface <- tox_list_surface$chem_site %>%
   rename(site = SiteID,
          shortName = `Short Name`) %>%
@@ -52,10 +64,6 @@ chemicalSummary_surface <- tox_list_surface$chem_site %>%
 chemicalSummary_surface$site[which(chemicalSummary_surface$site=='04157000')] <- "04157005"
 
 
-#Add chemical class for chemicals that have new names from toxEval
-# chemicalSummary_surface$Class[is.na(chemicalSummary_surface$Class)] <- tox_list_surface$chem_info$Class[match(chemicalSummary_surface$CAS[is.na(chemicalSummary_surface$Class)], tox_list_surface$chem_info$CAS)]
-
-
 
 ##################################
 # custom benchmarks
@@ -63,10 +71,9 @@ chemicalSummary_surface$site[which(chemicalSummary_surface$site=='04157000')] <-
 # use this for toxicity quotient (TQ)
 
 tox_bench_list_surface<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides_Bench.xlsx")))
-# tox_bench_list_surface$chem_site$site_grouping <- factor(tox_bench_list_surface$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
 #replace chem data on benchmarks file with the EAR file
-#Note this also filters by date
+#Note this also appplies any filters added above
 tox_bench_list_surface$chem_data <- tox_list_surface$chem_data
 tox_bench_list_surface$chem_info <- tox_list_surface$chem_info
 
@@ -78,11 +85,8 @@ chemicalSummary_bench_surface <- tox_bench_list_surface$chem_site %>%
   right_join(chemicalSummary_bench_surface) 
 
 
-
 #Change saginaw river site to match pocis
 chemicalSummary_bench_surface$site[which(chemicalSummary_bench_surface$site=='04157000')] <- "04157005"
 
 
-#Add chemical class for chemicals that have new names from toxEval
-# chemicalSummary_bench$Class[is.na(chemicalSummary_bench$Class)] <- tox_bench_list_surface$chem_info$Class[match(chemicalSummary_bench$CAS[is.na(chemicalSummary_bench$Class)], tox_bench_list_surface$chem_info$CAS)]
 
