@@ -7,6 +7,20 @@
 
 tox_list<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/Passive2016_ToxEval.xlsx")))
 tox_list$chem_site$site_grouping <- factor(tox_list$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
+
+#load surface exclusions to combine with passive exclusions
+tox_list_surface <- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides.xlsx")))
+
+
+#Combine exclusions
+exclusions <- tox_list$exclusions %>%
+  dplyr::select(-chnm) %>%
+  bind_rows(tox_list_surface$exclusions) %>%
+  distinct()
+
+tox_list$exclusions <- exclusions
+
+
 ACClong <- get_ACC(tox_list$chem_info$CAS)
 ACClong <- remove_flags(ACClong, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
 
@@ -40,11 +54,17 @@ site_ID_order <- unique(chemicalSummary$site)
 tox_list_allpocis<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/Passive2016AllPOCIS_ToxEval.xlsx")))
 tox_list_allpocis$chem_site$site_grouping <- factor(tox_list_allpocis$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 ACClong_allpocis <- get_ACC(tox_list_allpocis$chem_info$CAS)
-ACClong_allpocis <- remove_flags(ACClong_allpocis)
+ACClong_allpocis <- remove_flags(ACClong_allpocis, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
+
+cleaned_ep_allpocis <- clean_endPoint_info(end_point_info)
+filtered_ep_allpocis <- filter_groups(cleaned_ep_allpocis, 
+                             groupCol = 'intended_target_family',
+                             remove_groups = c('Background Measurement','Undefined'))
+
 
 chemicalSummary_allpocis <- get_chemical_summary(tox_list_allpocis, 
-                                        ACClong, 
-                                        filtered_ep)
+                                                 ACClong_allpocis, 
+                                                 filtered_ep_allpocis)
 
 chemicalSummary_allpocis <- tox_list_allpocis$chem_site %>%
   rename(site = SiteID,
