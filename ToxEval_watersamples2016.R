@@ -64,6 +64,11 @@ chemicalSummary_surface <- tox_list_surface$chem_site %>%
 chemicalSummary_surface$site[which(chemicalSummary_surface$site=='04157000')] <- "04157005"
 
 
+#PLot order
+surface_ID_order <- tox_list_surface$chem_site$SiteID
+
+surface_ID_order[which(surface_ID_order=='04157000')] <- "04157005"
+
 
 ##################################
 # custom benchmarks
