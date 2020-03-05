@@ -8,6 +8,8 @@
 chemicalSummary_surface #Sam's data from surface
 chemicalSummary_bench_surface # Sam's surface data using custom benchmarks
 
+tox_list_surface$chem_data # Data prior to tox eval
+
 #Check out the standard boxplots
 plot_tox_boxplots(chemicalSummary_bench_surface, 
                   category = "Chemical", 
@@ -20,7 +22,19 @@ plot_tox_boxplots(chemicalSummary_surface,
 
 
 colors_EAR <- brewer.pal(n = 9, name = "YlOrRd")[c(2,4,7,9)]
+colors_EAR2 <- c('grey90', colors_EAR)
 
+
+chnm_list <- tox_list_surface$chem_data %>%
+  filter (Value > 0) %>%
+  group_by (SiteID, CAS, pCode) %>%
+  summarize(Value = max(Value, na.rm=T)) %>%
+  group_by(SiteID) %>%
+  summarize(n=n()) %>%
+  left_join(tox_list_surface$chem_site) %>%
+  rename(shortName = `Short Name`)
+
+saveOutput = write.csv(chnm_list, file = file_out(file.path(path_to_data, "Data", "SurfaceWaterChemDetects_AllDates.csv")), row.names = F)
 
 
 # #######################
@@ -73,15 +87,18 @@ site_detection <- full_join(site_freq_EAR0.01, site_freq_EAR0.001) %>%
   full_join(site_freq_EARDetected) %>%
   left_join(unique(chemicalSummary_surface[c("site", "shortName", "Lake")])) %>%
   rowwise() %>%
+  left_join(chnm_list[c('shortName', 'n')]) %>%
   mutate(Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")),
-         shortName = factor(shortName, site_order_surface))
+         shortName = factor(shortName, site_order_surface),
+         UnknownTox = n - sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, EARDetected, na.rm=T))
+
 
 
 
 site_detection <- site_detection %>%
   arrange(Lake, shortName) %>%
-  tidyr::gather(key=group, value=value, -site, -shortName, -Lake) %>%
-  mutate(group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "EARDetected"))))
+  tidyr::gather(key=group, value=value, -site, -shortName, -Lake, -n) %>%
+  mutate(group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "EARDetected", "UnknownTox"))))
 
 site_detection$value[which(is.na(site_detection$value))] <- 0
 
@@ -100,7 +117,7 @@ sitebyEAR_surfaceall <- ggplot(data=site_detection, aes(x=shortName, y=value, fi
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
+  scale_fill_manual(values = colors_EAR2, labels = c("EAR Unknown", expression(paste("EAR < 10"^"-4")), expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
   # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(expand=c(0,1)) + 
   theme(legend.position = 'bottom') +
@@ -158,15 +175,17 @@ site_detection_TQ <- full_join(site_freq_TQ1, site_freq_TQ0.1) %>%
   full_join(site_freq_TQDetected) %>%
   left_join(unique(chemicalSummary_surface[c("site", "shortName", "Lake")])) %>%
   rowwise() %>%
+  left_join(chnm_list[c('shortName', 'n')]) %>%
   mutate(Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")),
-         shortName = factor(shortName, site_order_surface))
+         shortName = factor(shortName, site_order_surface),
+         UnknownTox = n - sum(AboveTQ1, AboveTQ0.1, AboveTQ0.01, TQDetected, na.rm=T))
 
 
 
 site_detection_TQ <- site_detection_TQ %>%
   arrange(Lake, shortName) %>%
-  tidyr::gather(key=group, value=value, -site, -shortName, -Lake) %>%
-  mutate(group = factor(group, levels=rev(c("AboveTQ1", "AboveTQ0.1", "AboveTQ0.01", "TQDetected"))))
+  tidyr::gather(key=group, value=value, -site, -shortName, -Lake, -n) %>%
+  mutate(group = factor(group, levels=rev(c("AboveTQ1", "AboveTQ0.1", "AboveTQ0.01", "TQDetected", "UnknownTox"))))
 
 site_detection_TQ$value[which(is.na(site_detection_TQ$value))] <- 0
 
@@ -186,7 +205,7 @@ sitebyTQ_surfaceall <- ggplot(data=site_detection_TQ, aes(x=shortName, y=value, 
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
+  scale_fill_manual(values = colors_EAR2, labels = c("Unknown TQ",expression(paste("TQ < 10"^"-2")), expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
   # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(expand=c(0,1)) + 
   theme(legend.position = 'bottom') +
@@ -250,17 +269,21 @@ site_detection_max <- full_join(site_freq_Max0.01, site_freq_Max0.001) %>%
   full_join(site_freq_MaxDetected) %>%
   left_join(unique(chemicalSummary_surface[c("site", "shortName", "Lake")])) %>%
   rowwise() %>%
+  left_join(chnm_list[c('shortName', 'n')]) %>%
   mutate(Lake = factor(Lake, c("Superior", "Michigan", "Huron", "Erie", "Ontario")),
-         shortName = factor(shortName, site_order_surface))
+         shortName = factor(shortName, site_order_surface),
+         UnknownTox = n - sum(AboveMax0.01, AboveMax0.001, AboveMax0.0001, MaxDetected, na.rm=T))
 
 
 
 site_detection_max <- site_detection_max %>%
   arrange(Lake, shortName) %>%
-  tidyr::gather(key=group, value=value, -site, -shortName, -Lake) %>%
-  mutate(group = factor(group, levels=rev(c("AboveMax0.01", "AboveMax0.001", "AboveMax0.0001", "MaxDetected"))))
+  tidyr::gather(key=group, value=value, -site, -shortName, -Lake, -n) %>%
+  mutate(group = factor(group, levels=rev(c("AboveMax0.01", "AboveMax0.001", "AboveMax0.0001", "MaxDetected", "UnknownTox"))))
 
 site_detection_max$value[which(is.na(site_detection_max$value))] <- 0
+
+
 
 
 
@@ -269,7 +292,7 @@ sitebyMax_surfaceall <- ggplot(data=site_detection_max, aes(x=shortName, y=value
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
   # coord_flip() +
   facet_grid(.~Lake, space="free", scales="free") +
-  labs(x='Stream', y='Number of chemicals', fill = 'EAR') + 
+  labs(x='River', y='Number of chemicals', fill = 'EAR') + 
   theme_bw() +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -277,12 +300,17 @@ sitebyMax_surfaceall <- ggplot(data=site_detection_max, aes(x=shortName, y=value
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8),
-        legend.text = element_text(size=8)) + 
-  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4", " or TQ > 10"^"-2")), expression(paste("EAR > 10"^"-3", " or TQ > 10"^"-1")), expression(paste("EAR > 10"^"-2", " or TQ > 1")))) +
+        legend.text = element_text(size=10)) + 
+  scale_fill_manual(values = colors_EAR2,
+                    labels = c("Unknown EAR and TQ",
+                               expression(paste("EAR < 10"^"-4", " and TQ < 10"^"-2")),
+                               expression(paste("EAR > 10"^"-4", " or TQ > 10"^"-2")),
+                               expression(paste("EAR > 10"^"-3", " or TQ > 10"^"-1")),
+                               expression(paste("EAR > 10"^"-2", " or TQ > 1")))) +
   # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(expand=c(0,1)) + 
-  theme(legend.position = 'bottom') +
-  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
+  theme(legend.position = 'bottom', legend.text.align = 0) +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T, nrow=2)) +
   theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
 print(sitebyMax_surfaceall)
 
