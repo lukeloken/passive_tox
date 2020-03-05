@@ -634,7 +634,7 @@ TQ_box_surface_withLegend <-TQbox_surface +
 
 mylegend<-g_legend(TQ_box_surface_withLegend)
 
-rm(TQ_box_withLegend)
+rm(TQ_box_surface_withLegend)
 
 
 boxes_withLegend_surface<-grid.arrange(box_by_box_surface, mylegend, nrow=2, heights=c(15,1))
