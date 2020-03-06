@@ -6,6 +6,7 @@ library(data.table)
 library(toxEval)
 library(openxlsx)
 library(dataRetrieval)
+library(dplyr)
 
 # path_to_data <- Sys.getenv("PASSIVE_PATH")
 
@@ -21,6 +22,12 @@ source("R/analyze/data_reader_2016_Loken.R")
 # source("R/analyze/get_sites_ready.R")
 source("R/analyze/get_chem_info.R")
 # source("R/analyze/create_tox_file.R")
+
+#From toxeval tutorial
+path_to_tox <-  system.file("extdata", package="toxEval")
+file_name <- "OWC_data_fromSup.xlsx"
+full_path <- file.path(path_to_tox, file_name)
+tox_list_example <- create_toxEval(full_path)
 
 #Load chemical lists
 cas_df <- read.csv(file_in(file.path(path_to_data, 'Data/Pesticides_2016_monitoring_list_GLRI_USGS_Loken.csv'))) %>%
@@ -122,7 +129,9 @@ sites_2016<-left_join(sites_2016, locations) %>%
   summarize_all(.funs=mean)
 
 
-exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv"))
+exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv")) %>%
+  dplyr::select(-chnm) %>%
+  full_join(tox_list_example$exclusions)
 
 # tox_list <- list("Data" = WW_2016_forToxEval, 
 #                  "Chemicals" = chem_info,
