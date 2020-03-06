@@ -300,7 +300,7 @@ sitebyMax_surfaceall <- ggplot(data=site_detection_max, aes(x=shortName, y=value
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8),
-        legend.text = element_text(size=10)) + 
+        legend.text = element_text(size=8)) + 
   scale_fill_manual(values = colors_EAR2,
                     labels = c("Unknown EAR and TQ",
                                expression(paste("EAR < 10"^"-4", " and TQ < 10"^"-2")),
