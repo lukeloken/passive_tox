@@ -171,15 +171,15 @@ ggplot(join_mdl, aes(x=Surface_mdl, y=Passive_mdl, label=chnm)) +
   geom_abline() +
   theme_bw() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-  # xlim(range(c(join_mdl$Surface_mdl, join_mdl$Passive_mdl))) +
-  # ylim(range(c(join_mdl$Surface_mdl, join_mdl$Passive_mdl))) +
+  xlim(range(c(join_mdl$Surface_mdl, join_mdl$Passive_mdl))) +
+  ylim(range(c(join_mdl$Surface_mdl, join_mdl$Passive_mdl))) +
   # xlim(c(0,.02)) +
   # ylim(c(0,.02)) +
   labs(x=expression(paste('Surface mdl (', mu, 'g L'^'-1', ')')), 
        y=expression(paste('Passive mdl (', mu, 'g L'^'-1', ')'))) +
-  geom_text() +
-  scale_x_log10nice() +
-  scale_y_log10nice()
+  geom_text() 
+  # scale_x_log10nice() +
+  # scale_y_log10nice()
 
 
 
