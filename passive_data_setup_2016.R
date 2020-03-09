@@ -99,6 +99,20 @@ AllPOCIS_forToxEval <- AllPOCIS_2016 %>%
   summarize(Value = mean(Value), `Sample Date` = min(`Sample Date`))
 
 
+mdl_2016_forToxEval <- WW_2016 %>%
+  select(CAS, chnm, MDL, `Sample Date`) %>%
+  group_by(chnm, CAS) %>%
+  summarize(Value = mean(MDL)) %>%
+  mutate(`Sample Date` = as.Date("1986-11-13"))
+
+mdl_2016_forToxEval$SiteID <- sites_2016$SiteID[1]
+
+
+surface_mdl <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.xlsx')), sheet='Data')
+surface_mdl$SiteID <- sites_2016$SiteID[1]
+
+cas_df_surf <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.xlsx')), sheet='Chemicals')
+
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
 
 sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
@@ -128,6 +142,8 @@ sites_2016<-left_join(sites_2016, locations) %>%
   group_by(`Short Name`, SiteID, Lake, site_grouping) %>%
   summarize_all(.funs=mean)
 
+fake_sites <- sites_2016[1,]
+
 
 exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv")) %>%
   dplyr::select(-chnm) %>%
@@ -152,11 +168,25 @@ allpocis_input_list <- list("Data" = AllPOCIS_forToxEval,
                        "Sites" = sites_2016, 
                        "Exclude" = exclude)
 
+tox_input_mdl_list <- list("Data" = mdl_2016_forToxEval, 
+                       "Chemicals" = cas_df,
+                       "Sites" = fake_sites, 
+                       "Exclude" = exclude)
+
+tox_input_surf_mdl_list <- list("Data" = surface_mdl, 
+                           "Chemicals" = cas_df_surf,
+                           "Sites" = fake_sites, 
+                           "Exclude" = exclude)
+
 saveOutput = openxlsx::write.xlsx(tox_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016_ToxEval.xlsx")))
 
 saveOutput = openxlsx::write.xlsx(tox_benchmark_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016Benchmarks_ToxEval.xlsx")))
 
 saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016AllPOCIS_ToxEval.xlsx")))
+
+saveOutput = openxlsx::write.xlsx(tox_input_mdl_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016MDL_ToxEval.xlsx")))
+
+saveOutput = openxlsx::write.xlsx(tox_input_surf_mdl_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides_MDL.xlsx")))
 
 
 POCIS_conc_table <- WW_2016_forToxEval %>%
