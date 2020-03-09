@@ -19,7 +19,7 @@ tox_list_passive$chem_site$site_grouping <- factor(tox_list_passive$chem_site$si
 
 #Combine exclusions
 exclusions <- tox_list_passive$exclusions %>%
-  dplyr::select(-chnm) %>%
+  # dplyr::select(-chnm) %>%
   bind_rows(tox_list_surface$exclusions) %>%
   distinct()
 
