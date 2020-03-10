@@ -3,11 +3,12 @@
 #Includes data from 16 rivers/streams in Great Lakes
 #biweekly to monthly sampling for one year
 
-#Prepare tox eval summaries
-
+#tox eval summaries, note these are missing chemicals not in toxcast
 chemicalSummary_surface #Sam's data from surface
 chemicalSummary_bench_surface # Sam's surface data using custom benchmarks
 
+#This is the tox_list file that was used to generate the chemical summary
+# It contains all chemicals
 tox_list_surface$chem_data # Data prior to tox eval
 
 #Check out the standard boxplots
@@ -20,11 +21,13 @@ plot_tox_boxplots(chemicalSummary_surface,
                   category = "Chemical", 
                   sum_logic = FALSE)
 
-
+#colors for stack bar
 colors_EAR <- brewer.pal(n = 9, name = "YlOrRd")[c(2,4,7,9)]
+
+#Color if using a grey to show unknowns
 colors_EAR2 <- c('grey90', colors_EAR)
 
-
+#Figure out how many total chemicals were detected in each site
 chnm_list <- tox_list_surface$chem_data %>%
   filter (Value > 0) %>%
   group_by (SiteID, CAS, pCode) %>%
@@ -78,7 +81,7 @@ site_freq_EARDetected<-chemicalSummary2_surface %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "EARDetected")
 
-
+#Order of sites and names for plotting
 site_table <- unique(chemicalSummary_surface[c('shortName', 'site')])
 site_order_surface <- site_table$shortName[match(surface_ID_order, site_table$site)]
 
@@ -92,9 +95,6 @@ site_detection <- full_join(site_freq_EAR0.01, site_freq_EAR0.001) %>%
          shortName = factor(shortName, site_order_surface),
          UnknownTox = n - sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, EARDetected, na.rm=T))
 
-
-
-
 site_detection <- site_detection %>%
   arrange(Lake, shortName) %>%
   tidyr::gather(key=group, value=value, -site, -shortName, -Lake, -n) %>%
@@ -103,8 +103,7 @@ site_detection <- site_detection %>%
 site_detection$value[which(is.na(site_detection$value))] <- 0
 
 
-
-#Plot barplot by site 
+#Plot stacked barplot by site 
 sitebyEAR_surfaceall <- ggplot(data=site_detection, aes(x=shortName, y=value, fill=group)) + 
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
   # coord_flip() +
@@ -129,9 +128,7 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBox_EARBySite_watersamples
 
 
 
-
-
-
+#Make similar table for TQ's
 
 chemicalSummary2_bench_surface <- chemicalSummary_bench_surface %>%
   # filter(date>=date_filter[1], date<=date_filter[2]) %>%
@@ -180,8 +177,6 @@ site_detection_TQ <- full_join(site_freq_TQ1, site_freq_TQ0.1) %>%
          shortName = factor(shortName, site_order_surface),
          UnknownTox = n - sum(AboveTQ1, AboveTQ0.1, AboveTQ0.01, TQDetected, na.rm=T))
 
-
-
 site_detection_TQ <- site_detection_TQ %>%
   arrange(Lake, shortName) %>%
   tidyr::gather(key=group, value=value, -site, -shortName, -Lake, -n) %>%
@@ -227,6 +222,7 @@ TQ_thresholds <-data.frame(group=c("AboveTQ1", "AboveTQ0.1", "AboveTQ0.01", "TQD
                             min=c(1, 0.1, 0.01, 0), 
                             max=c(Inf, 1, 0.1, 0.01))
 
+#Divide TQ by 100 and take max of TQ or EAR. 
 chemicalSummary2_combine <- chemicalSummary2_bench_surface %>%
   rename(TQ = EAR) %>%
   full_join(chemicalSummary2_surface) %>%
