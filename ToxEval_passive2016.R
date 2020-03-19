@@ -103,15 +103,15 @@ chemicalSummary_bench$Class[is.na(chemicalSummary_bench$Class)] <- tox_bench_lis
 
 #Create csv for publication
 #Chemicals included in analysis
-chemicals_in <- tox_input_list$Data %>%
+chemicals_in <- tox_list$chem_data %>%
   group_by(CAS, chnm) %>%
   select(chnm, CAS, Value) %>%
   filter(Value > 0) %>%
   tally(name = 'Detections') %>%
-  full_join(tox_input_list$Data[,c('chnm', 'CAS')]) %>%
+  full_join(tox_list$chem_data[,c('chnm', 'CAS')]) %>%
   distinct() %>%
   arrange(chnm) %>%
-  left_join(tox_input_list$Chemicals[,c('CAS', 'Class')]) %>%
+  left_join(tox_list$chem_info[,c('CAS', 'Class')]) %>%
   filter(Class !="")
 
 # chemicals_in$Detections[is.na(chemicals_in$Detections)] <- 0
