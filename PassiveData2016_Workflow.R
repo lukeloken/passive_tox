@@ -13,6 +13,16 @@ path_to_data <- c('C:/Users/lloken/DOI/Corsi, Steven R - GLRI CECs/2016/Manuscri
 #load libraries
 library(gridExtra)
 library(RColorBrewer)
+library(drake)
+library(tidyverse)
+library(googledrive)
+library(readxl)
+library(data.table)
+library(toxEval)
+library(openxlsx)
+library(dataRetrieval)
+library(dplyr)
+
 
 #load custom functions
 source('R/functions/g_legend.R')
