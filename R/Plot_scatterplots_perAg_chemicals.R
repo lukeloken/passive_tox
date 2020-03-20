@@ -30,9 +30,9 @@ graphData2 <- site_detection %>%
   dplyr::group_by(site) %>%
   dplyr::select(site, value, group) %>%
   spread(key=group, value=value) %>%
-  mutate(detect = OnlyDetected + AboveEAR0.0001 + AboveEAR0.001,
-         low = AboveEAR0.0001 + AboveEAR0.001,
-         high = AboveEAR0.001) %>%
+  mutate(detect = OnlyDetected + AboveEAR0.0001 + AboveEAR0.001 + AboveEAR0.01 ,
+         low = AboveEAR0.0001 + AboveEAR0.001 + AboveEAR0.01 ,
+         high = AboveEAR0.001 + AboveEAR0.01 ) %>%
   rename(STAID = site) %>%
   left_join(basins_OGR@data) %>%
   mutate(perAgUrban = (perAg + perUrban)*100) %>%
@@ -129,6 +129,7 @@ ggsave(file_out(file.path(path_to_data, "Figures/Scatter_Detections_bylanduse_v2
 
 scatter_v3 <- ggplot(data=graphData2, aes(x=perAgUrban, y=value, shape=group, group=group, fill=group, color=group)) +
   geom_smooth(method='lm', se=F, size=2) +
+  # geom_smooth(se=F, size=2) +
   # geom_polygon(data=hulls, alpha=.3) +
   geom_point(size=2, color='black', stroke=1) +
   theme_bw() +
