@@ -77,6 +77,10 @@ chem_detection <- chem_detection %>%
 
 chem_detection$value[which(is.na(chem_detection$value))] <- 0
 
+#Reverse chemical order for horizontal barplot
+chem_detection$chnm2 = factor(chem_detection$chnm, rev(levels(chem_detection$chnm)))
+
+
 ##########################################
 
 #Make similar table for TQ
@@ -126,6 +130,8 @@ TQ_detection <- TQ_detection %>%
 
 TQ_detection$value[which(is.na(TQ_detection$value))] <- 0
 
+TQ_detection$chnm2 = factor(TQ_detection$chnm, rev(levels(TQ_detection$chnm)))
+
 
 # ########################################
 # Plot frequency of chemical and EAR/TQ by chemical
@@ -160,9 +166,8 @@ print(chemicalbyEAR2)
 ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByEAR_Bychem2.png")), plot = chemicalbyEAR2, height=4, width=6)
 
 
-
 #Plot barplot by chemical horiztonal
-chemicalbyEAR2_horiztonal <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) + 
+chemicalbyEAR2_horiztonal <- ggplot(data=chem_detection, aes(x=chnm2, y=value, fill=group)) + 
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
   coord_flip() +
   facet_grid(Class~., space="free", scales="free") +
@@ -171,16 +176,17 @@ chemicalbyEAR2_horiztonal <- ggplot(data=chem_detection, aes(x=chnm, y=value, fi
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_rect(colour = "black", size=.5),
-        axis.title.x=element_blank(),
+        # axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
         legend.title = element_blank(),
-        axis.text.x = element_text(size=8),
+        # axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
   scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")), expression(paste("EAR > 10"^"-2")))) +
   # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
-  theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1))
+  theme(axis.text.x = element_text(size=8, angle=0, vjust=1, hjust=.5))
 
 print(chemicalbyEAR2_horiztonal)
 
@@ -215,7 +221,68 @@ ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByTQ_Bychem2.png")), p
 
 
 
+#Plot barplot by chemical horiztonal
+TQ_detection2_horiztonal <- ggplot(data=TQ_detection, aes(x=chnm2, y=value, fill=group)) + 
+  geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
+  coord_flip() +
+  facet_grid(Class~., space="free", scales="free") +
+  labs(x='Chemical', y='Number of streams', fill = 'TQ') + 
+  theme_bw() +
+  scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) +
+  # scale_y_reverse(limits=c(15.5,0), expand=c(0,0)) + 
+  # scale_x_discrete(position='top') + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=.5),
+        # axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.title = element_blank(),
+        # axis.text.x = element_text(size=8, angle=0, hjust=1),
+        axis.text.y = element_text(size=8)) + 
+  scale_fill_manual(values = colors_EAR, labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
+  #   scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
+  # scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
+  theme(legend.position = 'bottom') +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
+  theme(axis.text.x = element_text(size=8, angle=0, vjust=1, hjust=.5))
 
+print(TQ_detection2_horiztonal)
+
+ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByTQ_Bychem2_horiztonal.png")), plot = chemicalbyEAR2_horiztonal, height=6, width=4)
+
+
+#Combine EAR and TQ horizontal plots
+
+EAR_box1 <- chemicalbyEAR2_horiztonal +
+  theme(strip.background = element_blank(), 
+        strip.text = element_blank(),
+        plot.title=element_text(size=12, hjust=.5, vjust=0),
+        legend.text = element_text(size=8),
+        axis.title.x=element_text(size=8),
+        legend.key.size = unit(.5, 'line')) +
+  guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
+  ggtitle('EAR')
+
+EAR_box1
+
+TQ_box2 <- TQ_detection2_horiztonal +
+  theme(axis.text.y=element_blank(),
+        plot.title=element_text(size=12, hjust=.5, vjust=0),
+        legend.text = element_text(size=8),
+        axis.title.x=element_text(size=8),
+        legend.key.size = unit(.5, 'line')) +
+  guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
+  ggtitle('TQ')
+        
+
+TQ_box2
+
+png(file.path(path_to_data, "Figures/SideBar_EAR_TQ_byChem.png"), height=6, width=5, units='in', res=400)
+
+grid.newpage()
+boxes_EAR<-grid.draw(cbind(ggplotGrob(EAR_box1), ggplotGrob(TQ_box2), size = "first"))
+
+dev.off()
 
 # #######################
 # Summarize EAR by site
