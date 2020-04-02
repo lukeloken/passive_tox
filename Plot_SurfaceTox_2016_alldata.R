@@ -39,6 +39,30 @@ chnm_list <- tox_list_surface$chem_data %>%
 
 saveOutput = write.csv(chnm_list, file = file_out(file.path(path_to_data, "Data", "SurfaceWaterChemDetects_AllDates.csv")), row.names = F)
 
+chnm_list_overlap <- tox_list_surface$chem_data %>%
+  filter (Value > 0) %>%
+  filter(`Sample Date` > date_filter[1] & `Sample Date` < date_filter[2]) %>%
+  group_by (SiteID, CAS, pCode) %>%
+  summarize(Value = max(Value, na.rm=T)) %>%
+  group_by(SiteID) %>%
+  summarize(n=n()) %>%
+  left_join(tox_list_surface$chem_site) %>%
+  rename(shortName = `Short Name`)
+
+saveOutput = write.csv(chnm_list_overlap, file = file_out(file.path(path_to_data, "Data", "SurfaceWaterChemDetects_SummerDates.csv")), row.names = F)
+
+chnm_list_overlap2 <- tox_list_surface$chem_data %>%
+  filter (Value > 0) %>%
+  filter (SiteID != '04085427') %>%
+  filter(`Sample Date` > date_filter[1] & `Sample Date` < date_filter[2]) %>%
+  group_by (SiteID, CAS, pCode) %>%
+  summarize(Value = max(Value, na.rm=T)) %>%
+  group_by(CAS) %>%
+  summarize(n=n()) %>%
+  left_join(tox_list_surface$chem_info) %>%
+  arrange(desc(n))
+
+data.frame(chnm_list_overlap2[,1:6])
 
 # #######################
 # Summarize EAR by site
