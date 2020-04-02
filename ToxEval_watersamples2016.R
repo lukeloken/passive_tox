@@ -35,12 +35,16 @@ tox_list_surface$chem_site <- tox_list_surface$chem_site %>%
   mutate(`Short Name` = gsub('Vermillion', 'Vermilion', `Short Name`)) %>%
   left_join(tox_list_passive$chem_site[,c("SiteID", 'site_grouping')]) 
 
-#Manually change chemical classes and State IDs
+
+
+#Manually change chemical classes and State IDs and Gage ID for Saginaw
 tox_list_surface$chem_info$Class[tox_list_surface$chem_info$CAS == '78-48-8'] = 'Herbicide'
 
 tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04157000")] <- 'MI'
-
 tox_list_surface$chem_site$site_grouping[which(tox_list_surface$chem_site$SiteID == "04085427")] <- 'WI'
+
+tox_list_surface$chem_site$SiteID[which(tox_list_surface$chem_site$SiteID=='04157000')] <- "04157005"
+tox_list_surface$chem_data$SiteID[which(tox_list_surface$chem_data$SiteID=='04157000')] <- "04157005"
 
 #Flag some ACCs
 ACClong <- get_ACC(tox_list_surface$chem_info$CAS)
@@ -81,6 +85,10 @@ tox_bench_list_surface<- create_toxEval(file_in(file.path(path_to_data, "ToxEval
 #Note this also appplies any filters added above
 tox_bench_list_surface$chem_data <- tox_list_surface$chem_data
 tox_bench_list_surface$chem_info <- tox_list_surface$chem_info
+
+tox_bench_list_surface$chem_site$SiteID[which(tox_bench_list_surface$chem_site$SiteID=='04157000')] <- "04157005"
+tox_bench_list_surface$chem_data$SiteID[which(tox_bench_list_surface$chem_data$SiteID=='04157000')] <- "04157005"
+
 
 chemicalSummary_bench_surface <- get_chemical_summary(tox_bench_list_surface)
 
