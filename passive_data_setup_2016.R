@@ -32,7 +32,11 @@ tox_list_example <- create_toxEval(full_path)
 #Load chemical lists
 cas_df <- read.csv(file_in(file.path(path_to_data, 'Data/Pesticides_2016_monitoring_list_GLRI_USGS_Loken.csv'))) %>%
   rename(chnm = Chemical.Name) %>%
-  mutate(chnm = tolower(chnm))
+  mutate(chnm = tolower(chnm)) %>%
+  select(-CAS, -CAS_wrongformat) %>%
+  rename(CAS = CAS2)
+
+cas_df$CAS <- gsub(' ', '', cas_df$CAS)
 
 # cas_df_new <- read_excel(file_in(file.path(path_to_data, 'Data/pesticide CAS numbers.xlsx'))) %>%
   # rename(chnm = `Parameter Name`,
@@ -105,11 +109,8 @@ mdl_2016_forToxEval <- WW_2016 %>%
   summarize(Value = mean(MDL)) %>%
   mutate(`Sample Date` = as.Date("1986-11-13"))
 
-mdl_2016_forToxEval$SiteID <- sites_2016$SiteID[1]
-
 
 surface_mdl <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.xlsx')), sheet='Data')
-surface_mdl$SiteID <- sites_2016$SiteID[1]
 
 cas_df_surf <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.xlsx')), sheet='Chemicals')
 
@@ -167,6 +168,11 @@ allpocis_input_list <- list("Data" = AllPOCIS_forToxEval,
                        "Chemicals" = cas_df,
                        "Sites" = sites_2016, 
                        "Exclude" = exclude)
+
+
+mdl_2016_forToxEval$SiteID <- sites_2016$SiteID[1]
+surface_mdl$SiteID <- sites_2016$SiteID[1]
+
 
 tox_input_mdl_list <- list("Data" = mdl_2016_forToxEval, 
                        "Chemicals" = cas_df,
