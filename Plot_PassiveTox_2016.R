@@ -23,42 +23,63 @@ plot_tox_boxplots(chemicalSummary,
 # create tables by chemical and by sites
 # these are detections above the POCIS minimum detection
 # allpocis data only useful for presence/absence
-chem_freq_allpocis<-chemicalSummary_allpocis %>%
-  filter(EAR > 0) %>%
-  group_by(chnm, site) %>%
-  summarize(EAR_mean = mean(EAR, na.rm=T)) %>%
-  tally(name = "Detected")
+# chem_freq_allpocis<-chemicalSummary_allpocis %>%
+#   filter(EAR > 0) %>%
+#   group_by(chnm, site) %>%
+#   summarize(EAR_mean = mean(EAR, na.rm=T)) %>%
+#   tally(name = "Detected")
+
+chem_freq_allpocis <- tox_list_allpocis$chem_data %>%
+  group_by(CAS, chnm) %>%
+  select(chnm, CAS, Value) %>%
+  filter(Value > 0) %>%
+  tally(name = 'Detected') %>%
+  left_join(unique(tox_list_allpocis$chem_data[,c('chnm', 'CAS')])) %>%
+  distinct() %>%
+  arrange(chnm) %>%
+  left_join(unique(tox_list_allpocis$chem_info[,c('CAS', 'Class')])) %>%
+  # filter(Class !="") %>%
+  arrange(Class, desc(Detected))
+
 
 chemicalSummary2 <- chemicalSummary %>%
   filter(EAR>0) %>%
-  dplyr::group_by(site, chnm) %>% 
+  dplyr::group_by(site, CAS) %>% 
   summarize(EAR = max(EAR, na.rm=T)) %>%
-  arrange(desc(EAR))
+  arrange(desc(EAR)) %>%
+  filter(CAS %in% chem_freq_allpocis$CAS)
 
 chem_freq_EAR0.01<-chemicalSummary2 %>%
-  group_by(chnm, site) %>%
+  group_by(CAS, site) %>%
   filter(EAR >= 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.01")
 
 chem_freq_EAR0.001<-chemicalSummary2 %>%
-  group_by(chnm, site) %>%
+  group_by(CAS, site) %>%
   filter(EAR >= 0.001 & EAR < 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.001")
 
 chem_freq_EAR0.0001<-chemicalSummary2 %>%
-  group_by(chnm, site) %>%
+  group_by(CAS, site) %>%
   filter(EAR < 0.001 & EAR >= 0.0001) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveEAR0.0001")
 
+chem_freq_EARAboveZero<-chemicalSummary2 %>%
+  group_by(CAS, site) %>%
+  filter(EAR < 0.0001) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "BelowEAR0.0001")
+
 chem_detection <- full_join(chem_freq_EAR0.01, chem_freq_EAR0.001) %>%
   full_join(chem_freq_EAR0.0001) %>%
   full_join(chem_freq_allpocis) %>%
+  full_join(chem_freq_EARAboveZero) %>%
   left_join(unique(chemicalSummary_allpocis[c("chnm", "Class")])) %>%
   rowwise() %>%
-  mutate(EAR_total = sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, na.rm=T),
+  mutate(EAR_total = sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, BelowEAR0.0001, na.rm=T),
          OnlyDetected = Detected - EAR_total,
          chnm = as.character(chnm)) %>%
   select(-Detected, -EAR_total )
@@ -70,10 +91,10 @@ chem_detection$Class <- gsub("Deg - ", "", chem_detection$Class)
 
 chem_detection <- chem_detection %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide'))) %>%
-  arrange(Class, desc(AboveEAR0.01), desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(OnlyDetected)) %>%
+  arrange(Class, desc(AboveEAR0.01), desc(AboveEAR0.001), desc(AboveEAR0.0001), desc(BelowEAR0.0001), desc(OnlyDetected)) %>%
   tidyr::gather(key=group, value=value, -chnm, -Class) %>%
   mutate(chnm = factor(chnm, levels=unique(chnm)), 
-         group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "OnlyDetected"))))
+         group = factor(group, levels=rev(c("AboveEAR0.01", "AboveEAR0.001", "AboveEAR0.0001", "BelowEAR0.0001", "OnlyDetected"))))
 
 chem_detection$value[which(is.na(chem_detection$value))] <- 0
 
@@ -86,29 +107,40 @@ chem_detection$chnm2 = factor(chem_detection$chnm, rev(levels(chem_detection$chn
 #Make similar table for TQ
 chemicalSummary_bench2 <- chemicalSummary_bench %>%
   filter(EAR>0) %>%
-  dplyr::group_by(site, chnm) %>% 
-  summarize(EAR = max(EAR, na.rm=T))
+  dplyr::group_by(site, CAS) %>% 
+  summarize(EAR = max(EAR, na.rm=T)) %>%
+  arrange(desc(EAR)) %>%
+  filter(CAS %in% chem_freq_allpocis$CAS)
 
 chem_freq_TQ1<-chemicalSummary_bench2 %>%
-  group_by(chnm, site) %>%
+  group_by(CAS, site) %>%
   filter(EAR >= 1) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ1")
 
 chem_freq_TQ0.1<-chemicalSummary_bench2 %>%
-  group_by(chnm, site) %>%
+  group_by(CAS, site) %>%
   filter(EAR >= 0.1 & EAR < 1) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ0.1")
 
 chem_freq_TQ0.01<-chemicalSummary_bench2 %>%
-  group_by(chnm, site) %>%
+  group_by(CAS, site) %>%
   filter(EAR < 0.1 & EAR >= 0.01) %>%
   summarize(EAR_max = max(EAR, na.rm=T)) %>%
   tally(name = "AboveTQ0.01")
 
+chem_freq_TQAbove0 <-chemicalSummary_bench2 %>%
+  group_by(CAS, site) %>%
+  filter(EAR > 0.01) %>%
+  summarize(EAR_max = max(EAR, na.rm=T)) %>%
+  tally(name = "BelowTQ0.01")
+
+
+
 TQ_detection <- full_join(chem_freq_TQ1, chem_freq_TQ0.1) %>%
   full_join(chem_freq_TQ0.01) %>%
+  full_join(chem_freq_TQAbove0) %>%
   full_join(chem_freq_allpocis) %>%
   left_join(unique(chemicalSummary_allpocis[c("chnm", "Class")])) %>%
   rowwise() %>%
