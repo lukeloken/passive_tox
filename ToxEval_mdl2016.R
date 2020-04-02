@@ -96,6 +96,7 @@ mdl_EAR_join <- surface_mdl_summary %>%
   left_join(unique(chemicalSummary_passive_mdl[,c('CAS', 'Class')])) %>%
   drop_na(Class)
 
+lmmodel <- lm(log10(mdl_EAR_join$EAR_passive) ~ log10(mdl_EAR_join$EAR_surface))
 
 mdlcompare <- ggplot(mdl_EAR_join, aes(x=EAR_surface, y=EAR_passive, label=chnm)) +
   geom_point(col='red', size=2) +
