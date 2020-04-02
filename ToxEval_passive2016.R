@@ -100,19 +100,55 @@ chemicalSummary_bench$Class[is.na(chemicalSummary_bench$Class)] <- tox_bench_lis
 
 
 
+#Figure out how many chemicals are in each classification
+# Conc versus no conc
+# Detect versus no detect
+# EAR available yes/no
 
 #Create csv for publication
-#Chemicals included in analysis
+
+#Chemicals detected in pocis
+chemicals_allpocis <- tox_list_allpocis$chem_data %>%
+  group_by(CAS, chnm) %>%
+  select(chnm, CAS, Value) %>%
+  filter(Value > 0) %>%
+  tally(name = 'POCIS_Detect') %>%
+  left_join(unique(tox_list_allpocis$chem_data[,c('chnm', 'CAS')])) %>%
+  distinct() %>%
+  arrange(chnm) %>%
+  left_join(unique(tox_list_allpocis$chem_info[,c('CAS', 'Class')])) %>%
+  # filter(Class !="") %>%
+  arrange(Class, desc(POCIS_Detect))
+
+chemicals_notdetected <- tox_list_allpocis$chem_data %>%
+  group_by(CAS, chnm) %>%
+  select(chnm, CAS, Value) %>%
+  summarize(maxValue = max(Value, na.rm=T),
+            n=n())  %>%
+  filter(maxValue == 0)
+  
+
+#Chemicals included in concentration analysis
 chemicals_in <- tox_list$chem_data %>%
   group_by(CAS, chnm) %>%
   select(chnm, CAS, Value) %>%
   filter(Value > 0) %>%
   tally(name = 'Detections') %>%
-  full_join(tox_list$chem_data[,c('chnm', 'CAS')]) %>%
+  left_join(unique(tox_list$chem_data[,c('chnm', 'CAS')])) %>%
   distinct() %>%
   arrange(chnm) %>%
   left_join(tox_list$chem_info[,c('CAS', 'Class')]) %>%
-  filter(Class !="")
+  filter(Class !="") %>%
+  filter(CAS %in% chemicals_allpocis$CAS)
+
+#Chemicals included in concentration analysis
+#Note that Tebupirimos had a concentration for one site, yet was below detection limit for all POCIS data
+chemicals_zeroconc <- tox_list$chem_data %>%
+  group_by(CAS, chnm) %>%
+  select(chnm, CAS, Value) %>%
+  summarize(maxValue = max(Value, na.rm=T),
+            n=n())  %>%
+  filter(CAS %in% chemicals_notdetected$CAS)
 
 # chemicals_in$Detections[is.na(chemicals_in$Detections)] <- 0
 
@@ -133,13 +169,26 @@ missing_ToxCast <- setdiff(chemicals_in$CAS, chemicals_out$CAS)
 
 chemicals_in[chemicals_in$CAS %in% missing_ToxCast,]
 
-chemicals_combine <- chemicals_in %>%
-  filter(CAS %in% missing_ToxCast) %>%
-  bind_rows(chemicals_out) %>%
+chemicals_combine <-   chemicals_in %>%
+  full_join(chemicals_allpocis) %>%
+  arrange(chnm) %>%
+  # filter(CAS %in% missing_ToxCast) %>%
+  # bind_rows(chemicals_out) %>%
   mutate(Class = factor(Class, c('Herbicide', 'Deg - Herbicide', 'Fungicide', 'Deg - Fungicide', 'Insecticide', 'Deg - Insecticide'))) %>%
-  select(Class, chnm, CAS, Detections) %>%
+  select(Class, chnm, CAS, Detections, POCIS_Detect) %>%
   arrange(Class, desc(Detections), chnm) 
 
+chemicals_out2 <- rename(chemicals_out, chnm_ne = chnm)
+
+chemicals_combine_rename <- chemicals_combine[which(chemicals_combine$CAS %in% chemicals_out2$CAS),] %>%
+  left_join(chemicals_out2) %>%
+  select(-chnm) %>%
+  rename(chnm = chnm_ne) %>%
+  full_join(chemicals_combine[-which(chemicals_combine$CAS %in% chemicals_out2$CAS),])
+
+chemicals_combine <- chemicals_combine_rename %>%
+  mutate(Class = factor(Class, c('Herbicide', 'Deg - Herbicide', 'Fungicide', 'Deg - Fungicide', 'Insecticide', 'Deg - Insecticide')))
+  
 
 #Find number of EAR 'hits'
 chemicalSummary_EARHits <- chemicalSummary %>%
@@ -159,14 +208,15 @@ chemicalSummary_TQHits <- chemicalSummary_bench %>%
   group_by() %>%
   mutate(chnm = as.character(chnm))
 
-missing_TQ <- setdiff(chemicals_combine$CAS, chemicalSummary_bench$CAS)
+missing_TQ <- setdiff(chemicals_in$CAS, unique(chemicalSummary_bench$CAS))
 
 chemicals_combine[chemicals_combine$CAS %in% missing_TQ,]
 
 
 chemicals_combine<- full_join(chemicals_combine, chemicalSummary_EARHits) %>%
   full_join(chemicalSummary_TQHits) %>%
-  arrange(Class, desc(Detections), desc(EAR_Hits), desc(TQ_Hits)) %>%
+  select(Class, CAS, chnm, POCIS_Detect, Detections, EAR_Hits, TQ_Hits) %>%
+  arrange(Class, desc(Detections), desc(EAR_Hits), desc(TQ_Hits), desc(POCIS_Detect)) %>%
   rename('EAR hits' = EAR_Hits,
          'TQ hits' = TQ_Hits,
          'Chemical Name' = chnm)
@@ -177,6 +227,13 @@ chemicals_combine$`TQ hits`[chemicals_combine$CAS %in% missing_TQ] <- "*"
 chemicals_combine$`EAR hits`[is.na(chemicals_combine$`EAR hits`)] <- ""
 chemicals_combine$`TQ hits`[is.na(chemicals_combine$`TQ hits`)] <- ""
 
+chemicals_combine$Detections[which(chemicals_combine$Detections>0)] <- "Yes"
+chemicals_combine$Detections[is.na(chemicals_combine$Detections)] <- "No"
+
+chemicals_combine <- chemicals_combine %>%
+  rename(`Concentration Available` = Detections) %>%
+  rename(Detections = POCIS_Detect)
+
 write.csv(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.csv")), row.names=F)
 
 # write.table(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.txt")), row.names=F, sep=',')
@@ -185,3 +242,4 @@ write.csv(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemi
 
 
 rm(ACClong, ACClong_allpocis, cleaned_ep, filtered_ep )
+
