@@ -147,12 +147,19 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$STAID[nchar(data_long$STAID) == 8 & substring(data_long$STAID, first = 1, last = 1) != "0"] <- dataRetrieval::zeroPad(data_long$STAID[nchar(data_long$STAID) == 8 & substring(data_long$STAID, first = 1, last = 1) != "0"], 9)
   data_long$STAID <- dataRetrieval::zeroPad(data_long$STAID, 8)
   
+  # data_long <- data_long %>%
+  #   select(-SiteID, -`Station shortname`) %>%
+  #   rename(SiteID=STAID) %>%
+  #   filter(!is.na(chnm),
+  #          CAS != "---" | is.na(CAS),
+  #          CAS != "-" | is.na(CAS))
+  
   data_long <- data_long %>%
     select(-SiteID, -`Station shortname`) %>%
     rename(SiteID=STAID) %>%
-    filter(!is.na(chnm),
-           CAS != "---" | is.na(CAS),
-           CAS != "-" | is.na(CAS))
+    filter(!is.na(chnm))
+  
+  data_long$CAS[which(grepl("[0-9]", data_long$CAS)==FALSE)] <- NA
   
   if(any(is.na(data_long$CAS))){
     message("Some CAS didn't match up")
@@ -161,8 +168,6 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   
   # Get rid of censored data:
   data_long$Value[-which(data_long$comment %in% c("", "Est"))] <- 0
-  
-  data_long$SiteID[data_long$SiteID == "04085790"] <- "04085721"
   
   return(data_long)
 }
