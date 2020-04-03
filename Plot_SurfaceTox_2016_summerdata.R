@@ -35,7 +35,8 @@ chem_freq_all<-tox_list_surface$chem_data %>%
   group_by(CAS, SiteID) %>%
   summarize(Value_mean = mean(Value, na.rm=T)) %>%
   tally(name = "LabDetected") %>%
-  left_join(tox_list_surface$chem_info)
+  left_join(tox_list_surface$chem_info) %>%
+  arrange(desc(LabDetected))
 
 chem_freq_all$compound[which(is.na(chem_freq_all$compound))] <- chem_freq_all$`Chemical Name`[which(is.na(chem_freq_all$compound))] 
 
@@ -147,12 +148,12 @@ chem_detection <- full_join(chem_freq_EAR0.01, chem_freq_EAR0.001) %>%
   mutate(chnm = as.character(chnm))
 
 
-chem_detection <- full_join(chem_detection, chem_freq_all) %>%
+chem_detection <- full_join(chem_detection, chem_freq_all[,c('CAS', 'LabDetected', 'Class')]) %>%
   mutate(UnknownTox = LabDetected - 
            sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, EARDetected, na.rm=T)) %>%
   select(-LabDetected)
   
-
+chem_detection$chnm[which(is.na(chem_detection$chnm))] <- chem_freq_all$chnm[match(chem_detection$CAS[which(is.na(chem_detection$chnm))], chem_freq_all$CAS)]
 
 chem_detection$chnm[which(chem_detection$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))] <- 
   paste0(chem_detection$chnm[which(chem_detection$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))], "*")
@@ -312,7 +313,7 @@ TQ_detection2 <- ggplot(data=TQ_detection , aes(x=chnm, y=value, fill=group)) +
         legend.title = element_blank(),
         axis.text.x = element_text(size=8),
         axis.text.y = element_text(size=8)) + 
-  scale_fill_manual(values = colors_EAR2, labels = c("Unknown TQ",  expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
+  scale_fill_manual(values = colors_EAR2, labels = c("Unknown TQ",  expression(paste("TQ < 10"^"-2")), expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")), expression(paste("TQ > 1")))) +
   # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("TQ > 10"^"-2")), expression(paste("TQ > 10"^"-1")))) +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) + 
   theme(legend.position = 'bottom') +
