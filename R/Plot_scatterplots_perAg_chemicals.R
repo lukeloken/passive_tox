@@ -30,7 +30,7 @@ graphData2 <- site_detection %>%
   dplyr::group_by(site) %>%
   dplyr::select(site, value, group) %>%
   spread(key=group, value=value) %>%
-  mutate(detect = OnlyDetected + AboveEAR0.0001 + AboveEAR0.001 + AboveEAR0.01 ,
+  mutate(detect = OnlyDetected + BelowEAR0.0001 + AboveEAR0.0001 + AboveEAR0.001 + AboveEAR0.01 ,
          low = AboveEAR0.0001 + AboveEAR0.001 + AboveEAR0.01 ,
          high = AboveEAR0.001 + AboveEAR0.01 ) %>%
   rename(STAID = site) %>%
