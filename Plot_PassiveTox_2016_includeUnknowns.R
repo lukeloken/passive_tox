@@ -41,6 +41,9 @@ chem_freq_allpocis <- tox_list_allpocis$chem_data %>%
   # filter(Class !="") %>%
   arrange(Class, desc(Detected))
 
+chem_freq_allpocis$chnm[which(chem_freq_allpocis$CAS %in% unique(chemicalSummary[,c('CAS', 'chnm')])$CAS)] <- NA 
+  
+chem_freq_allpocis$chnm[is.na(chem_freq_allpocis$chnm)] <- as.character(unique(chemicalSummary[,c('CAS', 'chnm')])$chnm[match(chem_freq_allpocis$CAS[is.na(chem_freq_allpocis$chnm)] ,unique(chemicalSummary[,c('CAS', 'chnm')])$CAS)])
 
 chemicalSummary2 <- chemicalSummary %>%
   filter(EAR>0) %>%
@@ -175,6 +178,7 @@ colors_EAR <- brewer.pal(n = 9, name = "YlOrRd")[c(2,4,7,9)]
 #Color if using a grey to show unknowns
 colors_EAR2 <- c('grey90', colors_EAR)
 
+Class_Labels <- c('Herbicide', 'Fungicide', 'Insecticide', ' ')
 
 #Plot barplot by chemical 
 # chemicalbyEAR2 <- ggplot(data=chem_detection, aes(x=chnm, y=value, fill=group)) + 
@@ -307,7 +311,7 @@ TQ_detection3 <- ggplot(data=TQ_detection , aes(x=chnm, y=value, fill=group)) +
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +
   # coord_flip() +
   facet_grid(.~Class, space="free", scales="free") +
-  labs(x='Chemical', y='Number of streams', fill = 'TQ') +
+  labs(x='Chemical', y='Number of rivers', fill = 'TQ') +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -362,7 +366,7 @@ TQ_detection3_horiztonal <- ggplot(data=TQ_detection, aes(x=chnm2, y=value, fill
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
   coord_flip() +
   facet_grid(Class~., space="free", scales="free") +
-  labs(x='Chemical', y='Number of streams', fill = 'TQ') + 
+  labs(x='Chemical', y='Number of rivers', fill = 'TQ') + 
   theme_bw() +
   scale_y_continuous(limits=c(0,15.5), expand=c(0,0)) +
   # scale_y_reverse(limits=c(15.5,0), expand=c(0,0)) + 
@@ -394,7 +398,8 @@ EAR_box1 <- chemicalbyEAR3_horiztonal +
         plot.title=element_text(size=12, hjust=.5, vjust=0),
         legend.text = element_text(size=8),
         axis.title.x=element_text(size=8),
-        legend.key.size = unit(.5, 'line')) +
+        legend.key.size = unit(.5, 'line'),
+        legend.background = element_rect(fill='lightgreen')) +
   guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
   ggtitle('EAR')
 
