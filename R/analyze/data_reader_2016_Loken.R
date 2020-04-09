@@ -111,6 +111,7 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$chnm <- gsub(" \\{eoat\\} \\(deisopropylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub(" \\{ioiat\\} \\(Deethylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   
+  data_long$chnm <- gsub("Desamino Metribuzin","Metribuzin DA",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("Tebupirimphos","Tebupirimfos",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("Tebuthiuron TP el108","Tebuthiuron Transformation Product 108",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("Tebuthiuron Tp","Tebuthiuron Transformation Product",data_long$chnm, ignore.case = TRUE)
