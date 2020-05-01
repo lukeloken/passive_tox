@@ -398,9 +398,8 @@ EAR_box1 <- chemicalbyEAR3_horiztonal +
         plot.title=element_text(size=12, hjust=.5, vjust=0),
         legend.text = element_text(size=8),
         axis.title.x=element_text(size=8),
-        legend.key.size = unit(.5, 'line'),
-        legend.background = element_rect(fill='lightgreen')) +
-  guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
+        legend.key.size = unit(.5, 'line')) + 
+        guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
   ggtitle('EAR')
 
 EAR_box1
