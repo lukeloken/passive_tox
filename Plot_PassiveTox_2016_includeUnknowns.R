@@ -14,6 +14,51 @@ plot_tox_boxplots(chemicalSummary_bench,
                   sum_logic = FALSE,
                   x_label = "Toxicity Quotient")
 
+sumtoxbox <- plot_tox_boxplots(chemicalSummary, "Biological", hit_threshold = 0.001, sum_logic = F) +
+  # theme(plot.title = element_text(margin=margin(0,0,10,0))) +
+  theme( panel.grid.minor=element_blank()) 
+
+print(sumtoxbox)
+
+ggsave(file_out(file.path(path_to_data, "Figures/SumChemEffects.png")), plot = sumtoxbox, height=5, width=5)
+
+
+prioritychems <- as.character(unique(filter(chemicalSummary, EAR>0.001)$chnm))
+prioritychems<-c(prioritychems[-which(prioritychems=='Simazine')], 'Imidacloprid')
+
+chem_plot_list <- chem_plot_list_sum <- list()
+chem_nu<-1
+for (chem_nu in 1:length(prioritychems)) {
+
+  chem_plot_list[[chem_nu]] <- plot_tox_boxplots(filter(chemicalSummary, 
+                                                        chnm==prioritychems[chem_nu],
+                                                        EAR>0), "Biological", hit_threshold = 0.001, sum_logic=F) +
+  ggtitle(prioritychems[chem_nu]) + 
+    theme(plot.title = element_text(margin=margin(0,0,10,0))) +
+    theme(axis.title.x=element_blank(),
+          panel.grid.minor=element_blank()) 
+  
+  chem_plot_list_sum[[chem_nu]] <- plot_tox_boxplots(filter(chemicalSummary, 
+                                                            chnm==prioritychems[chem_nu],
+                                                            EAR>0), "Biological", hit_threshold = 0.001) +
+    ggtitle(prioritychems[chem_nu]) + 
+    theme(plot.title = element_text(margin=margin(0,0,10,0))) +
+    theme(axis.title.x=element_blank(),
+          panel.grid.minor=element_blank()) 
+  
+}
+
+chem_grid <- grid.arrange(grobs=chem_plot_list, nrow=2, 
+                          bottom = textGrob(label = expression(paste(max(EAR[category])))))
+
+chem_grid_sum <- grid.arrange(grobs=chem_plot_list_sum, nrow=2, 
+                          bottom = textGrob(label = expression(paste(Sigma, EAR[category]))))
+
+
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityChemEffects.png")), plot = chem_grid, height=7, width=12)
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityChemEffectsSum.png")), plot = chem_grid_sum, height=7, width=12)
+
+
 plot_tox_boxplots(chemicalSummary, 
                   category = "Chemical", 
                   sum_logic = FALSE)
@@ -31,7 +76,7 @@ plot_tox_boxplots(chemicalSummary,
 
 chem_freq_allpocis <- tox_list_allpocis$chem_data %>%
   group_by(CAS, chnm) %>%
-  select(chnm, CAS, Value) %>%
+  dplyr::select(chnm, CAS, Value) %>%
   filter(Value > 0) %>%
   tally(name = 'Detected') %>%
   left_join(unique(tox_list_allpocis$chem_data[,c('chnm', 'CAS')])) %>%
@@ -85,7 +130,7 @@ chem_detection <- full_join(chem_freq_EAR0.01, chem_freq_EAR0.001) %>%
   mutate(EAR_total = sum(AboveEAR0.01, AboveEAR0.001, AboveEAR0.0001, BelowEAR0.0001, na.rm=T),
          OnlyDetected = Detected - EAR_total,
          chnm = as.character(chnm)) %>%
-  select(-Detected, -EAR_total )
+  dplyr::select(-Detected, -EAR_total )
 
 
 chem_detection$chnm[which(chem_detection$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
@@ -150,7 +195,7 @@ TQ_detection <- full_join(chem_freq_TQ1, chem_freq_TQ0.1) %>%
   mutate(TQ_total = sum(AboveTQ1, AboveTQ0.01, AboveTQ0.1, BelowTQ0.01, na.rm=T),
          OnlyDetected = Detected - TQ_total,
          chnm = as.character(chnm)) %>%
-  select(-Detected, -TQ_total )
+  dplyr::select(-Detected, -TQ_total )
 
 
 TQ_detection$chnm[which(TQ_detection$Class %in% c("Deg - Fungicide", "Deg - Herbicide"))] <- 
@@ -404,7 +449,7 @@ EAR_box1 <- chemicalbyEAR3_horiztonal +
 
 EAR_box1
 
-TQ_box2 <- TQ_detection3_horiztonal +
+TQ_box1 <- TQ_detection3_horiztonal +
   theme(axis.text.y=element_blank(),
         plot.title=element_text(size=12, hjust=.5, vjust=0),
         legend.text = element_text(size=8),
@@ -414,12 +459,47 @@ TQ_box2 <- TQ_detection3_horiztonal +
   ggtitle('TQ')
         
 
-TQ_box2
+TQ_box1
 
 png(file.path(path_to_data, "Figures/SideBar_EAR_TQ_byChem3.png"), height=8, width=6, units='in', res=400)
 
 grid.newpage()
-boxes_EAR<-grid.draw(cbind(ggplotGrob(EAR_box1), ggplotGrob(TQ_box2), size = "first"))
+boxes_EAR<-grid.draw(cbind(ggplotGrob(EAR_box1), ggplotGrob(TQ_box1), size = "first"))
+
+dev.off()
+
+
+EAR_box2 <- chemicalbyEAR3_horiztonal +
+  theme(strip.background = element_rect(fill=NA, color=NA),
+        strip.text = element_text(size=8),
+        axis.text.y=element_blank(),
+        plot.title=element_text(size=12, hjust=.5, vjust=0),
+        legend.text = element_text(size=8),
+        axis.title.x=element_text(size=8),
+        legend.key.size = unit(.4, 'cm'),
+        legend.margin=margin(t = 0, r=0, b=0, l=0, unit='cm')) +
+  guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
+  ggtitle('EAR')
+
+EAR_box2
+
+TQ_box2 <- TQ_detection3_horiztonal +
+  theme(strip.background = element_blank(), 
+        strip.text = element_blank(),
+        plot.title=element_text(size=12, hjust=.5, vjust=0),
+        legend.text = element_text(size=8),
+        axis.title.x=element_text(size=8),
+        legend.key.size = unit(.4, 'cm'),
+        legend.margin=margin(t = 0, r=0, b=0, l=0, unit='cm')) + 
+  guides(fill=guide_legend(ncol=1, reverse=T, label.hjust=0)) + 
+  ggtitle('TQ')
+
+TQ_box2
+
+png(file.path(path_to_data, "Figures/SideBar_TQ_EAR_byChem3.png"), height=8, width=6, units='in', res=400)
+
+grid.newpage()
+boxes_EAR<-grid.draw(cbind(ggplotGrob(TQ_box2), ggplotGrob(EAR_box2), size = "first"))
 
 dev.off()
 
@@ -430,7 +510,7 @@ dev.off()
 site_freq_allpocis <- tox_list_allpocis$chem_data %>%
   filter(Value > 0) %>%
   group_by(SiteID, CAS) %>%
-  select(SiteID, CAS, Value) %>%
+  dplyr::select(SiteID, CAS, Value) %>%
   dplyr::summarize(Value_mean = mean(Value, na.rm=T)) %>%
   tally(name = "Detected") %>%
   rename(site = SiteID)
@@ -521,9 +601,10 @@ sitebyEAR3 <- ggplot(data=site_detection, aes(x=shortName, y=value, fill=group))
   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +
   # coord_flip() +
   facet_grid(.~Lake, space="free", scales="free") +
-  labs(x='Stream', y='Number of chemicals', fill = 'EAR') +
+  labs(x='River', y='Number of chemicals', fill = 'EAR') +
   theme_bw() +
-  theme(panel.grid.major = element_blank(),
+  theme(strip.background = element_rect(fill=NA, color=NA),
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.background = element_rect(colour = "black", size=.5),
         legend.title = element_blank(),
