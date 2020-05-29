@@ -8,6 +8,7 @@ library(sp)
 library(rgdal, verbose=F)
 library(SDMTools)
 library(raster,verbose = T)
+library(devtools)
 library(FedData)
 library(raster)
 library(sp)
@@ -26,8 +27,10 @@ library(sf)
 # basins <- filter(basins, STAID %in% sites$site_no)
 
 #nlcd
-# big_nlcd = get_nlcd(template=GL, label="GL")
-big_nlcd = get_nlcd(template=basins_OGR, label="basins", year='2011')
+big_nlcd_GL = get_nlcd(template=GL, label="GL")
+# big_nlcd = get_nlcd(template=basins_OGR, label="basins", year='2011')
+big_nlcd_2016 = get_nlcd(template=basins_OGR, label="basins", year='2016')
+
 # NLCDpath <- c('O:/BaseData/National/LandCover/NLCD16_2019Version/nlcd16lc.ovr')
 # big_nlcd = raster(NLCDpath)
 # 
