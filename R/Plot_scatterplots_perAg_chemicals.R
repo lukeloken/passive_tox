@@ -52,13 +52,21 @@ plot(residuals(AGmodel) ~ sites$perUrban)
 abline(lm(residuals(AGmodel) ~ sites$perUrban))             
 
 
-AGUrbanmodel <-lm(sites$chemicals ~ (sites$perAg+sites$perUrban))
+AGUrbanmodel <-lm(sites$chemicals ~ as.numeric((sites$perAg+sites$perUrban)))
 summary(AGUrbanmodel)
 residuals(AGUrbanmodel)
 
-AGUrbanmodel2 <-lm(sites$EAR ~ (sites$perAg+sites$perUrban))
+AGmodel1 <-lm(sites$chemicals ~ (as.numeric(sites$perAg)))
+summary(AGmodel1)
+residuals(AGmodel1)
+
+AGUrbanmodel2 <-lm(sites$EAR ~ (as.numeric(sites$perAg+sites$perUrban)))
 summary(AGUrbanmodel2)
 residuals(AGUrbanmodel)
+
+AGmodel2 <-lm(sites$EAR ~ (as.numeric(sites$perAg)))
+summary(AGmodel2)
+residuals(AGmodel2)
 
 
 par(mfrow=c(1,1))
