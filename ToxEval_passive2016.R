@@ -22,7 +22,7 @@ tox_list$exclusions <- exclusions
 
 
 ACClong <- get_ACC(tox_list$chem_info$CAS)
-# ACClong <- remove_flags(ACClong, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
+# ACClong <- remove_flags(ACClong, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical"))
 ACClong <- remove_flags(ACClong)
 
 cleaned_ep <- clean_endPoint_info(end_point_info)
@@ -46,6 +46,12 @@ chemicalSummary$Class[is.na(chemicalSummary$Class)] <- tox_list$chem_info$Class[
 site_order <- unique(chemicalSummary$shortName)
 site_ID_order <- unique(chemicalSummary$site)
 
+conc_table <- tox_list$chem_data %>%
+  filter(CAS %in% chemicalSummary$CAS)
+
+ggplot(tox_list$chem_data[tox_list$chem_data$Value>0,], aes(x=Value)) +
+  geom_histogram() +
+  scale_x_log10()
 
 ###############################################################
 # all pocis data
