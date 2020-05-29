@@ -108,7 +108,12 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$chnm <- gsub(" \\{CIAT\\} \\(deethylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub(" \\{CEAT\\} \\(deisopropylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   data_long$chnm <- gsub("  \\{caat\\} \\(didealkylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
-  data_long$chnm <- gsub(" \\{eoat\\} \\(deisopropylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
+  # data_long$chnm <- gsub(" \\{eoat\\} \\(deisopropylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
+  data_long$chnm <- gsub("2-Hydroxy-6-ethylamino-4-amino-s-triazine \\{EOAT\\} \\(deisopropylhydroxyatrazine\\)","Deisopropylhydroxyatrazine",data_long$chnm, ignore.case = TRUE)
+  
+  data_long$chnm <- gsub("2-Hydroxy-4-isopropylamino-6-amino-s-triazine \\{IOIAT\\} \\(deethylhydroxyatrazine\\)","Deethylhydroxyatrazine",data_long$chnm, ignore.case = TRUE)
+  
+
   data_long$chnm <- gsub(" \\{ioiat\\} \\(Deethylhydroxyatrazine\\)","",data_long$chnm, ignore.case = TRUE)
   
   data_long$chnm <- gsub("Desamino Metribuzin","Metribuzin DA",data_long$chnm, ignore.case = TRUE)
