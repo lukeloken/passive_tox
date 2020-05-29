@@ -129,7 +129,7 @@ sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "RawData/GLRI 20
   mutate(Datetime_in = as.POSIXct(paste(Date_in, Time_in), format="%Y-%m-%d %H%M"),
          Datetime_out = as.POSIXct(paste(Date_out, Time_out), format="%Y-%m-%d %H%M")) %>%
   # mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
-  select(`Short Name`, `site_no`, Lake, Date_in, Date_out, Datetime_in, Datetime_out)
+  select(`Short Name`, `site_no`, Lake, Date_in, Date_out, Datetime_in, Datetime_out, Deployed)
 
 locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va", 'station_nm')]
 names(locations) <- c("site_no", 'dec_lat', 'dec_long', 'site_grouping')
@@ -146,10 +146,12 @@ sites_2016<-left_join(sites_2016, locations) %>%
 fake_sites <- sites_2016[1,]
 
 
-exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv")) %>%
+exclude = get_exclude(file.path(path_to_data, "Data/exclude32.csv")) %>%
+# exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv")) %>%
   dplyr::select(-chnm) %>%
   full_join(tox_list_example$exclusions)
 
+  
 # tox_list <- list("Data" = WW_2016_forToxEval, 
 #                  "Chemicals" = chem_info,
 #                  "Sites" = sites_2016)
