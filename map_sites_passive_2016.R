@@ -129,7 +129,10 @@ getBasin <- function(sites, filePath = NA){
 mapRange <- c(-93.298145, -74.816895,40.937378, 48.058570 )
 streamorder <- 5
 crsLONGLAT <- 4326
-crs_plot <- st_crs(102003)
+# crs_plot <- st_crs(102003)
+# crs_plot <- st_crs(crsLONGLAT)
+
+crs_plot <- st_crs('+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs')
 
 #basins <- getBasin(sites$site_no)
 # filePath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20131299_GLRI_MASTER/~old/201401_HUC12Basins"
@@ -250,7 +253,7 @@ write.csv(sites_out, file = file_out(file.path(path_to_data, "Data/Site_characte
 
 #base_map <- 
 
-colors_EARmap <- brewer.pal(n = 9, name = "YlOrRd")[c(2,4,7,9)]
+colors_EARmap <- brewer.pal(n = 9, name = "YlOrRd")[c(2,5,8,9)]
 
   
 first_pass <- ggplot() + 
@@ -267,7 +270,7 @@ first_pass <- ggplot() +
   geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
   geom_sf(data = sites_df, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
   scale_size(range = c(4,12), breaks = c(10,20,30,40), guide = 'legend') +
-  scale_color_gradientn(colours=colors_EARmap, breaks = c(0,2,4,6),
+  scale_color_gradientn(colours=colors_EARmap, breaks = c(0,2,4,6,8,10),
                        guide = 'colourbar') + 
 
   # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
