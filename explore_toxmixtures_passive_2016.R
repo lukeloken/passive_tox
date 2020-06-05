@@ -51,9 +51,88 @@ plot_stackbar(chemicalSummary2, x='chnm', x_label='Chemical', y_label="Number of
 # n_sites <- length(unique(chemical_summary$site))
 # site_threshold <- ceiling(n_sites / site_threshold_percent)
 
+
+priorityEndpoints <- filter(chemicalSummary2, EAR>0.001) %>%
+  select(chnm, endPoint) %>%
+  unique() %>%
+  left_join(chemicalSummary2) %>%
+  arrange(desc(Bio_category), EAR)
+
+name_order <- unique(priorityEndpoints$endPoint)
+
+priorityEndpoints <- priorityEndpoints %>%
+  mutate( endPoint = factor(endPoint,name_order),
+          Bio_category = factor(Bio_category)) %>%
+  left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint")
+  # left_join(unique(join_criteria()), by = "endPoint") 
+
+
+endpoint_bychem_boxplot <- ggplot(priorityEndpoints, aes(y=endPoint, x=EAR)) +
+  geom_vline(xintercept=0.001, linetype='dashed') +
+  geom_jitter(shape=16, aes(color=Bio_category), alpha=0.5, width=0, height=.1, size=1.5) + 
+  geom_boxplot(outlier.shape=NA, aes(fill=Bio_category), alpha=.2, width=.5) + 
+  scale_x_log10nice(name = 'EAR') +
+  labs(y='ToxCast assay name', color = 'Bio Category', fill = 'Bio Category') + 
+  # facet_grid(Bio_category~chnm, scales = "free") + 
+  facet_grid(~chnm) + 
+  theme_tox() +
+  theme(legend.position='bottom', legend.title.align=0.5,
+        axis.text = element_text(size=8), strip.text =  element_text(size=8), 
+        strip.background=element_rect(fill='white', color=NA)) +
+  guides(col = guide_legend(nrow = 2))
+
+print(endpoint_bychem_boxplot)
+
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_byChemical.png")), endpoint_bychem_boxplot, height=6, width=8.5, units='in')
+
+endpoint_bychemgene_boxplot <- ggplot(priorityEndpoints, aes(y=geneSymbol, x=EAR)) +
+  geom_vline(xintercept=0.001, linetype='dashed') +
+  geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.2, size=1.5) + 
+  geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) + 
+  scale_x_log10nice(name = 'EAR') +
+  labs(y='Gene Target') + 
+  # facet_grid(Bio_category~chnm, scales = "free") + 
+  facet_grid(~chnm) + 
+  theme_tox() +
+  # theme(legend.position='bottom', legend.title.align=0.5) +
+  theme(axis.text = element_text(size=8), strip.text =  element_text(size=8), 
+        strip.background=element_rect(fill='white', color=NA)) +
+  guides(col = guide_legend(nrow = 2)) +
+  scale_y_discrete(limits = unique(priorityEndpoints$geneSymbol)[order(unique(priorityEndpoints$geneSymbol), decreasing = T)])
+
+print(endpoint_bychemgene_boxplot)
+
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_byChemical.png")), endpoint_bychemgene_boxplot, height=6, width=8.5, units='in')
+
+genes_out <- priorityEndpoints %>%
+  select(chnm, endPoint, Bio_category, geneSymbol) %>%
+  distinct() %>%
+  group_by(geneSymbol, Bio_category) %>% 
+  summarize(chnm = paste(unique(chnm), collapse = ","),
+            endPoint = paste(unique(endPoint), collapse = ",")) %>%
+  ungroup()  
+
+
+write.csv(genes_out, file = file_out(file.path(path_to_data, 'Data', 'priority_genes.csv')), row.names = F)
+
+
+#Mixtures
+
+
 group_by_this <- "endPoint"
 ear_threshold <- .001
 site_threshold <- 2
+
+
+all_combos <- top_mixes(chemicalSummary2, group_by_this, 
+                        ear_threshold,
+                        1) 
+
+overall_max_n_all <- overall_mixtures(all_combos, "max")
+
+
+overall_max_n_chem <- overall_mixtures(top_combos, "max")
+
 
 top_combos <- top_mixes(chemicalSummary2, group_by_this, 
                         ear_threshold,
@@ -68,7 +147,8 @@ summed_EARs <- chemicalSummary2 %>%
   summarize(sum_ear_endpoint = sum(EAR)) %>%
   filter(!!sym(group_by_this) %in% top_combos$endPoint) %>%
   ungroup() %>%
-  distinct()
+  distinct() %>%
+  left_join(unique(select(priorityEndpoints, endPoint, Bio_category)))
 
 endpoint_rank <- summed_EARs %>%
   group_by(endPoint) %>%
@@ -77,17 +157,52 @@ endpoint_rank <- summed_EARs %>%
 
 summed_EARs <- summed_EARs %>%
   left_join(overall_max_n_chem) %>%
+  left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint") %>%
   mutate(endPoint = factor(endPoint, endpoint_rank$endPoint))
 
 top_mix_box <- ggplot(summed_EARs, aes(y=endPoint, x=sum_ear_endpoint)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
-  geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.1, size=1.5) + 
-  geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) + 
+  geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.1, size=1.5) +
+  geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) +
+  # geom_jitter(shape=16, aes(color=Bio_category), alpha=0.5, width=0, height=.1, size=1.5) + 
+  # geom_boxplot(outlier.shape=NA, aes(fill=Bio_category), alpha=.2, width=.5) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
-  labs(y='ToxCast assay name') + 
-  theme_tox()
+  labs(y='ToxCast assay name', fill='Bio Category', color='Bio Category') + 
+  theme_tox() +
+  theme(legend.position='right', legend.title.align=0.5) +
+  guides(col = guide_legend(ncol = 1))
+
+print(top_mix_box)
   
-ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot.png")), top_mix_box, height=4, width=5, units='in')
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot.png")), top_mix_box, height=4, width=6, units='in')
+
+
+gene_rank <- summed_EARs %>%
+  group_by(geneSymbol) %>%
+  summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
+  arrange((sum_ear_median))
+
+summed_EARs <- summed_EARs %>%
+  mutate(geneSymbol = factor(geneSymbol, gene_rank$geneSymbol))
+
+top_mixgene_box <- ggplot(summed_EARs, aes(y=geneSymbol, x=sum_ear_endpoint)) +
+  geom_vline(xintercept=0.001, linetype='dashed') +
+  geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.1, size=1.5) +
+  geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) +
+  # geom_jitter(shape=16, aes(color=Bio_category), alpha=0.5, width=0, height=.1, size=1.5) + 
+  # geom_boxplot(outlier.shape=NA, aes(fill=Bio_category), alpha=.2, width=.5) + 
+  scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
+  labs(y='Gene Target', fill='Bio Category', color='Bio Category') + 
+  theme_tox() +
+  theme(legend.position='right', legend.title.align=0.5) +
+  guides(col = guide_legend(ncol = 1))
+
+print(top_mixgene_box)
+
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot.png")), 
+       top_mixgene_box, height=4, width=4, units='in')
+
+
 
 
 overall_max_n_chem <- overall_mixtures(top_combos, "max")  %>%
