@@ -60,7 +60,7 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityChemEffectsSum.png")), 
 
 
 plot_tox_boxplots(chemicalSummary, 
-                  category = "Chemical", 
+                  category = "Chemical Class", 
                   sum_logic = FALSE)
 
 
@@ -93,7 +93,8 @@ chem_freq_allpocis$chnm[is.na(chem_freq_allpocis$chnm)] <- as.character(unique(c
 chemicalSummary2 <- chemicalSummary %>%
   filter(EAR>0) %>%
   dplyr::group_by(site, CAS) %>% 
-  summarize(EAR = max(EAR, na.rm=T)) %>%
+  summarize(EAR = sum(EAR, na.rm=T)) %>%
+  # summarize(EAR = max(EAR, na.rm=T)) %>%
   arrange(desc(EAR)) %>%
   filter(CAS %in% chem_freq_allpocis$CAS)
 
