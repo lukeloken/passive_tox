@@ -318,7 +318,7 @@ second_pass <- ggplot() +
   geom_sf(data = sites_df, alpha = 0.9, shape = 16, aes(size = chemicals, color = EAR), show.legend = FALSE) +
   geom_sf(data = sites_df, alpha = 0.9, shape = 1, aes(size = chemicals), show.legend = FALSE) +
   scale_size(range = c(4,12), breaks = c(10,20,30,40), guide = 'legend') +
-  scale_color_gradientn(colours=colors_EARmap, breaks = c(0,2,4,6),
+  scale_color_gradientn(colours=colors_EARmap, breaks = c(0,2,4,6,8,10),
                         guide = 'colourbar') + 
   
   # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
