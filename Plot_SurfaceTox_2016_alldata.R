@@ -75,7 +75,8 @@ chemicalSummary2_surface <- chemicalSummary_surface %>%
   # filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   # filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
   dplyr::group_by(site, chnm, date) %>% 
-  summarize(EAR = max(EAR, na.rm=T)) %>% #Take Max for each chnm, site, and date
+  summarize(EAR = sum(EAR, na.rm=T)) %>% #Take Max for each chnm, site, and date
+  # summarize(EAR = max(EAR, na.rm=T)) %>% #Take Max for each chnm, site, and date
   dplyr::group_by(site, chnm) %>%
   summarize(EAR=max(EAR, na.rm=T)) #Take max among dates
 
