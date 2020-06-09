@@ -50,9 +50,10 @@ chemicalSummary2_surface <- chemicalSummary_surface %>%
   # filter(CAS %in% unique(tox_list_allpocis$chem_data$CAS)) %>%
   filter(site %in% unique(tox_list_allpocis$chem_site$SiteID)) %>%
   dplyr::group_by(site, CAS, chnm, date) %>% 
-  summarize(EAR = max(EAR, na.rm=T)) %>%
+  # summarize(EAR = max(EAR, na.rm=T)) %>%
+  summarize(EAR = sum(EAR, na.rm=T)) %>%
   dplyr::group_by(site, CAS,chnm) %>%
-  summarize(EAR=mean(EAR, na.rm=T))
+  summarize(EAR=max(EAR, na.rm=T))
 
 
 #Use all chemicals in surface TQ dataset
