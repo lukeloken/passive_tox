@@ -40,6 +40,16 @@ source('passive_data_setup_2016.R')
 #Loads two objects into environment (chemicalSummary and chemicalSummary_allpocis)
 source('ToxEval_passive2016.R')
 
+#Lots of figures to assess EAR for chemicals individually
+source('Plot_PassiveTox_2016_includeUnknowns.R')
+
+#Make map figure of EAR, number of chemicals detected with watersheds colored by % ag
+source('map_sites_passive_2016.R')
+
+#Scatterplots of land use versus chemical detections
+source('R/Plot_scatterplots_perAg_chemicals.R')
+
+
 #Evaluate toxicity using ToxEval for water samples data
 source('ToxEval_watersamples2016.R')
 
@@ -53,8 +63,3 @@ source('Plot_SurfaceTox_2016.R')
 #Combine water and passive samples and compare. 
 source('Compare_Plot_Passive_V_WaterSample.R')
 
-#Make map figure of EAR, number of chemicals detected with watersheds colored by % ag
-source('map_sites_passive_2016.R')
-
-#Scatterplots of land use versus chemical detections
-source('R/Plot_scatterplots_perAg_chemicals.R')
