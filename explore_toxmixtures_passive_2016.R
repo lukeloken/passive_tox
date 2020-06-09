@@ -53,7 +53,7 @@ plot_stackbar(chemicalSummary2, x='chnm', x_label='Chemical', y_label="Number of
 
 
 priorityEndpoints <- filter(chemicalSummary2, EAR>0.001) %>%
-  select(chnm, endPoint) %>%
+  dplyr::select(chnm, endPoint) %>%
   unique() %>%
   left_join(chemicalSummary2) %>%
   arrange(desc(Bio_category), EAR)
@@ -131,8 +131,27 @@ all_combos <- top_mixes(chemicalSummary2, group_by_this,
 overall_max_n_all <- overall_mixtures(all_combos, "max")
 
 
-overall_max_n_chem <- overall_mixtures(top_combos, "max")
+endpoint_review <- overall_max_n_all %>%
+  dplyr::select(endPoint, CASs) %>%
+  tidyr::separate(CASs, sep='\\|', into = letters[1:10], fill='right') %>%
+  select_if(~sum(!is.na(.)) > 0) %>%
+  gather(key = chem_mix_nu, value=CAS, -1) %>%
+  drop_na(CAS) %>%
+  dplyr::select(-chem_mix_nu)
+  # left_join(dplyr::select(ACClong, endPoint, ACC, ACC_value, chnm))
+  # left_join(unique(dplyr::select(ACClong, endPoint, chnm)))
+  
+ACCs <- dplyr::select(ACClong, endPoint, chnm, CAS, ACC, ACC_value) %>%
+  filter(endPoint %in% endpoint_review$endPoint, 
+         CAS %in% endpoint_review$CAS)
 
+endpoint_out <- endpoint_review %>%
+  left_join(ACCs) %>%
+  arrange(endPoint, ACC) %>%
+  distinct()
+
+  data.frame(endpoint_out)
+  
 
 top_combos <- top_mixes(chemicalSummary2, group_by_this, 
                         ear_threshold,
