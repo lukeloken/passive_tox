@@ -61,7 +61,9 @@ ggplot(tox_list$chem_data[tox_list$chem_data$Value>0,], aes(x=Value)) +
 tox_list_allpocis<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/Passive2016AllPOCIS_ToxEval.xlsx")))
 tox_list_allpocis$chem_site$site_grouping <- factor(tox_list_allpocis$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 ACClong_allpocis <- get_ACC(tox_list_allpocis$chem_info$CAS)
-ACClong_allpocis <- remove_flags(ACClong_allpocis, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
+# ACClong_allpocis <- remove_flags(ACClong_allpocis, flagsShort = c("Borderline", "OnlyHighest", "GainAC50", "Biochemical","ACCLessThan"))
+ACClong_allpocis <- remove_flags(ACClong_allpocis)
+
 
 cleaned_ep_allpocis <- clean_endPoint_info(end_point_info)
 filtered_ep_allpocis <- filter_groups(cleaned_ep_allpocis, 
