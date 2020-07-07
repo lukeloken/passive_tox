@@ -96,6 +96,10 @@ WW_2016_forToxEval <- WW_2016 %>%
   group_by(SiteID,  chnm, CAS) %>%
   summarize(Value = mean(Value), `Sample Date` = min(`Sample Date`))
 
+WW_2016_forGLRIDB <- WW_2016 %>%
+  select(CAS, chnm, Value, `Sample Date`, `Date Deployed`, `Date Retrieved`,
+         SiteID, comment, MDL, `Rep number`) 
+  
 
 AllPOCIS_forToxEval <- AllPOCIS_2016 %>%
   select(CAS, chnm, SiteID, Value, `Sample Date`) %>%
@@ -171,6 +175,11 @@ allpocis_input_list <- list("Data" = AllPOCIS_forToxEval,
                        "Sites" = sites_2016, 
                        "Exclude" = exclude)
 
+glridb_input_list <- list("Data" =  WW_2016_forGLRIDB,
+                            "Chemicals" = cas_df,
+                            "Sites" = sites_2016, 
+                            "Exclude" = exclude)
+
 
 mdl_2016_forToxEval$SiteID <- sites_2016$SiteID[1]
 surface_mdl$SiteID <- sites_2016$SiteID[1]
@@ -195,6 +204,8 @@ saveOutput = openxlsx::write.xlsx(allpocis_input_list, file = file_out(file.path
 saveOutput = openxlsx::write.xlsx(tox_input_mdl_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016MDL_ToxEval.xlsx")))
 
 saveOutput = openxlsx::write.xlsx(tox_input_surf_mdl_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides_MDL.xlsx")))
+
+saveOutput = openxlsx::write.xlsx(glridb_input_list, file = file_out(file.path(path_to_data, "ToxEvalFiles/Passive2016_ToxEval_forGLRIDB.xlsx")))
 
 
 POCIS_conc_table <- WW_2016_forToxEval %>%
