@@ -17,7 +17,7 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
              STAID = `USGS Station ID`)
   }
   
-  site_stuff$SiteID <- gsub("site ","",site_stuff$SiteID, ignore.case = TRUE)
+  # site_stuff$SiteID2 <- gsub("site ","",site_stuff$SiteID, ignore.case = TRUE)
   
   #Add replicate flag?
   
@@ -102,7 +102,10 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   
   data_long$generic_class <- 'pesticide'
   data_long$`Sample Date` <- year
-  data_long$SiteID <- gsub("site ","",data_long$SiteID, ignore.case = TRUE)
+  data_long$`Date Deployed` <- as.Date(site_stuff$Date...6)[match(data_long$SiteID, site_stuff$SiteID)]
+  data_long$`Date Retrieved` <-  as.Date(site_stuff$Date...8)[match(data_long$SiteID, site_stuff$SiteID)]
+  
+  # data_long$SiteID <- gsub("site ","",data_long$SiteID, ignore.case = TRUE)
   
   #Change some names to match CAS table
   data_long$chnm <- gsub(" \\{CIAT\\} \\(deethylatrazine\\)","",data_long$chnm, ignore.case = TRUE)
@@ -149,6 +152,9 @@ generic_file_opener <- function(file_name, cas_df, n_max, sheet, site_sheet,
   data_long$`Sample Date`[grepl(pattern = "Replicate",
                                 x = data_long$`Station shortname`)] <-  data_long$`Sample Date`[grepl(pattern = "Replicate",
                                                                                                        x = data_long$`Station shortname`)] + 0.5 #This essentially makes a 2nd "sample" for the data
+  
+  data_long$`Rep number` <- ifelse(grepl(pattern = "Replicate", data_long$`Station shortname`),
+                                   "2","1")
   
   data_long$STAID[nchar(data_long$STAID) == 8 & substring(data_long$STAID, first = 1, last = 1) != "0"] <- dataRetrieval::zeroPad(data_long$STAID[nchar(data_long$STAID) == 8 & substring(data_long$STAID, first = 1, last = 1) != "0"], 9)
   data_long$STAID <- dataRetrieval::zeroPad(data_long$STAID, 8)
