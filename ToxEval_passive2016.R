@@ -134,7 +134,22 @@ chemicals_notdetected <- tox_list_allpocis$chem_data %>%
   summarize(maxValue = max(Value, na.rm=T),
             n=n())  %>%
   filter(maxValue == 0)
+
+pocischemsintoxcast <- chemicalSummary_allpocis %>%
+  filter(EAR>0) %>%
+  select(chnm, CAS, site) %>%
+  distinct() %>%
+  select(-site) %>%
+  group_by(chnm, CAS) %>%
+  summarize(n = n())
   
+pocischemsinbenchmarks <- tox_list_allpocis$chem_data %>%
+  group_by(CAS, chnm) %>%
+  select(chnm, CAS, Value) %>%
+  summarize(maxValue = max(Value, na.rm=T),
+            n=n())  %>%
+  filter(maxValue > 0) %>%
+  filter(CAS %in% tox_bench_list$benchmarks$CAS)
 
 #Chemicals included in concentration analysis
 chemicals_in <- tox_list$chem_data %>%
@@ -238,6 +253,12 @@ chemicals_combine$`TQ hits`[is.na(chemicals_combine$`TQ hits`)] <- ""
 chemicals_combine$Detections[which(chemicals_combine$Detections>0)] <- "Yes"
 chemicals_combine$Detections[is.na(chemicals_combine$Detections)] <- "No"
 
+chemicals_combine$`ToxCast Available` <- 'No'
+chemicals_combine$`ToxCast Available`[chemicals_combine$CAS %in% pocischemsintoxcast$CAS] <- "Yes"
+
+chemicals_combine$`Benchmark Available` <- 'No'
+chemicals_combine$`Benchmark Available`[chemicals_combine$CAS %in% pocischemsinbenchmarks$CAS] <- "Yes"
+
 chemicals_combine <- chemicals_combine %>%
   rename(`Concentration Available` = Detections) %>%
   rename(Detections = POCIS_Detect)
@@ -247,6 +268,11 @@ write.csv(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemi
 # write.table(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.txt")), row.names=F, sep=',')
 
 
+chemicals_notavailable <- chemicals_combine %>%
+  select(CAS, `Chemical Name`, `Concentration Available`, `ToxCast Available`, `Benchmark Available`,  Detections) %>%
+  arrange(desc(`Concentration Available`), desc(`ToxCast Available`), desc(`Benchmark Available`), desc(Detections)) 
+
+write.csv(chemicals_notavailable, file = file_out(file.path(path_to_data, "Data/Chemicals Lacking Evaluations.csv")), row.names=F)
 
 
 rm(ACClong, ACClong_allpocis, cleaned_ep, filtered_ep )
