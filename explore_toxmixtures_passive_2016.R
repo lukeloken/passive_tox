@@ -136,8 +136,8 @@ name_order_surf <- unique(priorityEndpoints_surf$endPoint)
 priorityEndpoints_surf <- priorityEndpoints_surf %>%
   mutate( endPoint = factor(endPoint,name_order_surf),
           Bio_category = factor(Bio_category)) %>%
-  left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint") %>%
-  filter(chnm %in% c('Atrazine'))
+  left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint")
+  # filter(chnm %in% c('Atrazine'))
 # left_join(unique(join_criteria()), by = "endPoint") 
 
 
