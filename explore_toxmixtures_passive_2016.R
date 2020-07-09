@@ -125,6 +125,8 @@ write.csv(genes_out, file = file_out(file.path(path_to_data, 'Data', 'priority_g
 
 #Priority endpoints for water data
 
+chemicalSummary_surface
+
 priorityEndpoints_surf <- filter(chemicalSummary2_surf, EAR>0.001) %>%
   dplyr::select(chnm, endPoint) %>%
   unique() %>%
@@ -192,9 +194,9 @@ write.csv(genes_out_surf, file = file_out(file.path(path_to_data, 'Data', 'prior
 
 
 
-
-#Mixtures
-
+# #########
+# Mixtures
+# #########
 
 group_by_this <- "endPoint"
 ear_threshold <- .001
@@ -276,10 +278,14 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot.png"))
 gene_rank <- summed_EARs %>%
   group_by(geneSymbol) %>%
   summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
-  arrange((sum_ear_median))
+  mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
+  arrange(desc(order), sum_ear_median)
+
 
 summed_EARs <- summed_EARs %>%
+  left_join(select(gene_rank, geneSymbol, order)) %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank$geneSymbol))
+
 
 top_mixgene_box <- ggplot(summed_EARs, aes(y=geneSymbol, x=sum_ear_endpoint)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
@@ -361,7 +367,8 @@ summed_EARs_surf <- summed_EARs_surf %>%
   left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint") %>%
   mutate(endPoint = factor(endPoint, endpoint_rank_surf$endPoint)) %>%
   select(-chems, -CASs, -n_chems) %>%
-  distinct()
+  distinct() 
+
 
 top_mix_box_surf <- ggplot(unique(summed_EARs_surf[c('endPoint', 'sum_ear_endpoint', 
                                                      'Bio_category')]), aes(y=endPoint, x=sum_ear_endpoint)) +
@@ -380,13 +387,16 @@ print(top_mix_box_surf)
 
 ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_surf.png")), top_mix_box, height=4, width=6, units='in')
 
+summed_EARs_surf$geneSymbol[is.na(summed_EARs_surf$geneSymbol)] <- paste0(summed_EARs_surf$Bio_category[is.na(summed_EARs_surf$geneSymbol)], "*")
 
 gene_rank_surf <- summed_EARs_surf %>%
   group_by(geneSymbol) %>%
   summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
-  arrange((sum_ear_median))
+  mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
+  arrange(desc(order), sum_ear_median)
 
 summed_EARs_surf <- summed_EARs_surf %>%
+  left_join(select(gene_rank_surf, geneSymbol, order)) %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank_surf$geneSymbol))
 
 top_mixgene_box_surf <- ggplot(summed_EARs_surf, aes(y=geneSymbol, x=sum_ear_endpoint)) +
@@ -417,9 +427,9 @@ gene_combine$geneSymbol[is.na(gene_combine$geneSymbol)] <- paste0(gene_combine$B
 
 
 gene_rank_combine <- gene_combine %>%
-  group_by(geneSymbol) %>%
+  group_by(geneSymbol, order) %>%
   summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
-  arrange((sum_ear_median))
+  arrange(desc(order), sum_ear_median)
 
 gene_combine <- gene_combine %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank_combine$geneSymbol),
