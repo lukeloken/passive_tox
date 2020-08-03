@@ -7,6 +7,7 @@ library(dplyr)
 library(RColorBrewer)
 library(ggplot2)
 
+#Need to run (ToxEval_Passive2016.R and ToxEval_WaterSamples2016.R)
 
 chemicalSummary2_surf <- chemicalSummary_surface %>%
   mutate(shortName = factor(shortName, site_order)) %>%
@@ -14,32 +15,35 @@ chemicalSummary2_surf <- chemicalSummary_surface %>%
          shortName %in% site_order) %>%
   mutate(shortName = factor(shortName, site_order)) %>%
   group_by(site, endPoint, shortName, Lake, site_grouping, CAS, chnm, Bio_category, Class) %>%
-  summarise(EAR = max(EAR, na.rm=T)) %>%
-  ungroup()
+  summarise(EAR = max(EAR, na.rm=T), .groups = 'drop') 
   
 
 chemicalSummary2 <- chemicalSummary %>%
   mutate(shortName = factor(shortName, site_order))
 
-plot_stackbar(chemicalSummary2, x='shortName', x_label='Site', y_label="Number of chemicals",
+plot_stackbar(chemicalSummary2, x='shortName', x_label='Site', 
+              y_label="Number of chemicals",
               fill='EAR', stack='chnm', 
               breaks=c(.0001, .001, .01)) + 
   theme(axis.text.x = element_text(angle=90, hjust=1))
 
 
-plot_stackbar(chemicalSummary2, x='chnm', x_label='Chemical', y_label="Number of rivers",
+plot_stackbar(chemicalSummary2, x='chnm', x_label='Chemical', 
+              y_label="Number of rivers",
               fill='EAR', stack='site', 
               breaks=c(.0001, .001, .01)) + 
   theme(axis.text.x = element_text(angle=90, hjust=1))
 
 
-plot_stackbar(chemicalSummary_surface, x='shortName', x_label='Site', y_label="Number of chemicals",
+plot_stackbar(chemicalSummary_surface, x='shortName', x_label='Site', 
+              y_label="Number of chemicals",
               fill='EAR', stack='chnm', 
               breaks=c(.0001, .001, .01)) + 
   theme(axis.text.x = element_text(angle=90, hjust=1))
 
 
-plot_stackbar(chemicalSummary_surface, x='chnm', x_label='Chemical', y_label="Number of rivers",
+plot_stackbar(chemicalSummary_surface, x='chnm', x_label='Chemical', 
+              y_label="Number of rivers",
               fill='EAR', stack='site', 
               breaks=c(.0001, .001, .01)) + 
   theme(axis.text.x = element_text(angle=90, hjust=1))
@@ -112,8 +116,8 @@ genes_out <- priorityEndpoints %>%
   distinct() %>%
   group_by(geneSymbol, Bio_category) %>% 
   summarize(chnm = paste(unique(chnm), collapse = ","),
-            endPoint = paste(unique(endPoint), collapse = ",")) %>%
-  ungroup()  
+            endPoint = paste(unique(endPoint), collapse = ","),
+            .groups = 'drop') 
 
 
 write.csv(genes_out, file = file_out(file.path(path_to_data, 'Data', 'priority_genes.csv')), row.names = F)
@@ -124,8 +128,6 @@ write.csv(genes_out, file = file_out(file.path(path_to_data, 'Data', 'priority_g
 
 
 #Priority endpoints for water data
-
-chemicalSummary_surface
 
 priorityEndpoints_surf <- filter(chemicalSummary2_surf, EAR>0.001) %>%
   dplyr::select(chnm, endPoint) %>%
@@ -138,9 +140,9 @@ name_order_surf <- unique(priorityEndpoints_surf$endPoint)
 priorityEndpoints_surf <- priorityEndpoints_surf %>%
   mutate( endPoint = factor(endPoint,name_order_surf),
           Bio_category = factor(Bio_category)) %>%
-  left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint")
-  # filter(chnm %in% c('Atrazine'))
-# left_join(unique(join_criteria()), by = "endPoint") 
+  left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint") 
+  # filter(chnm %in% c('2,4-Dichlorophenoxyacetic acid'))
+  # left_join(unique(join_criteria()), by = "endPoint") 
 
 
 endpoint_bychem_boxplot_surf <- ggplot(unique(priorityEndpoints_surf[,c('endPoint', 'EAR', 'site', 'chnm', 'Bio_category')]), aes(y=endPoint, x=EAR)) +
@@ -185,8 +187,7 @@ genes_out_surf <- priorityEndpoints_surf %>%
   distinct() %>%
   group_by(geneSymbol, Bio_category) %>% 
   summarize(chnm = paste(unique(chnm), collapse = ","),
-            endPoint = paste(unique(endPoint), collapse = ",")) %>%
-  ungroup()  
+            endPoint = paste(unique(endPoint), collapse = ","), .groups = 'drop')
 
 
 write.csv(genes_out_surf, file = file_out(file.path(path_to_data, 'Data', 'priority_genes_surface.csv')), row.names = F)
@@ -200,7 +201,7 @@ write.csv(genes_out_surf, file = file_out(file.path(path_to_data, 'Data', 'prior
 
 group_by_this <- "endPoint"
 ear_threshold <- .001
-site_threshold <- 2
+site_threshold <- 1.9
 
 #Passive
 all_combos <- top_mixes(chemicalSummary2, group_by_this, 
@@ -209,11 +210,9 @@ all_combos <- top_mixes(chemicalSummary2, group_by_this,
 
 overall_max_n_all <- overall_mixtures(all_combos, "max")
 
-
 endpoint_review <- overall_max_n_all %>%
   dplyr::select(endPoint, CASs) %>%
   tidyr::separate(CASs, sep='\\|', into = letters[1:10], fill='right') %>%
-  select_if(~sum(!is.na(.)) > 0) %>%
   gather(key = chem_mix_nu, value=CAS, -1) %>%
   drop_na(CAS) %>%
   dplyr::select(-chem_mix_nu)
@@ -308,9 +307,24 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot.png")),
 
 
 #Surface samples
-all_combos_surf <- top_mixes(chemicalSummary_surface, group_by_this, 
+chemicalSummary2_summer <- chemicalSummary_surface %>%  
+  mutate(shortName = factor(shortName, site_order)) %>%
+  filter(`date`>=date_filter[1], `date`<=date_filter[2],
+         shortName %in% site_order) %>%
+  mutate(shortName = factor(shortName, site_order))
+  
+all_combos_surf <- top_mixes(chemicalSummary2_summer, group_by_this, 
                         ear_threshold,
-                        1) 
+                        .9) 
+
+priority_combos_surf <- filter(all_combos_surf, n_samples>10)
+priority_max <- overall_mixtures(priority_combos_surf, "max")
+
+class_key <- class_key_fnx(chemicalSummary2_summer)
+
+priority_max_fancy <- overall_df_format(priority_max, class_key)
+
+write.csv(priority_max, file = file_out(file.path(path_to_data, 'Data', 'priority_mixtures_surface.csv')), row.names = F)
 
 overall_max_n_all_surf <- overall_mixtures(all_combos_surf, "max")
 
@@ -318,7 +332,7 @@ overall_max_n_all_surf <- overall_mixtures(all_combos_surf, "max")
 endpoint_review_surf <- overall_max_n_all_surf %>%
   dplyr::select(endPoint, CASs) %>%
   tidyr::separate(CASs, sep='\\|', into = letters[1:10], fill='right') %>%
-  select_if(~sum(!is.na(.)) > 0) %>%
+  # select_if(~sum(!is.na(.)) > 0) %>%
   gather(key = chem_mix_nu, value=CAS, -1) %>%
   drop_na(CAS) %>%
   dplyr::select(-chem_mix_nu)
@@ -337,15 +351,18 @@ endpoint_out_surf <- endpoint_review_surf %>%
 data.frame(endpoint_out_surf)
 
 
-top_combos_surf <- top_mixes(chemicalSummary_surface, group_by_this, 
-                        ear_threshold,
-                        site_threshold) 
+top_combos_surf <- top_mixes(chemicalSummary2_summer,
+                             group_by_this, 
+                             ear_threshold,
+                             site_threshold) 
 
 
 overall_max_n_chem_surf <- overall_mixtures(top_combos_surf, "max")
 
 
 summed_EARs_surf <- chemicalSummary_surface %>%
+  filter(`date`>=date_filter[1], `date`<=date_filter[2],
+         shortName %in% site_order) %>%
   group_by(site, date, !!sym(group_by_this)) %>%
   summarize(sum_ear_endpoint = sum(EAR)) %>%
   filter(!!sym(group_by_this) %in% top_combos_surf$endPoint) %>%
@@ -353,7 +370,8 @@ summed_EARs_surf <- chemicalSummary_surface %>%
   distinct() %>%
   # left_join(unique(select(priorityEndpoints_surf, endPoint))) %>%
   group_by(site, endPoint) %>%
-  summarize(sum_ear_endpoint = max(sum_ear_endpoint, na.rm=T )) %>%
+  summarize(sum_ear_endpoint = max(sum_ear_endpoint, na.rm=T ), 
+            n=n()) %>%
   ungroup() %>%
   left_join(unique(select(chemicalSummary_surface, endPoint, Bio_category)))
 
@@ -442,8 +460,9 @@ top_mixgene_box_twomethod <- ggplot(gene_combine, aes(y=geneSymbol, x=sum_ear_en
   scale_fill_manual(values = c('red', 'blue')) + 
   scale_color_manual(values = c('red', 'blue')) + 
   # geom_point(position = position_dodge(width=0.75), aes(group=method, color=method), shape=16,  alpha=0.5, size=1.5) +
-  geom_jitter(shape=16, aes(color=method), alpha=0.5, width=0, height=.1, size=1) +
-  geom_boxplot(position = position_dodge(preserve = "single"), aes(fill=method), outlier.shape=NA, alpha=.2, width=0.6) +
+  geom_jitter(shape=16, aes(color=method), alpha=0.5, width=0, height=.2, size=1) +
+  geom_boxplot(position = position_dodge(preserve = "single"), 
+               aes(fill=method), outlier.shape=NA, alpha=.2, width=0.6, color='grey20') +
   # geom_boxplot(outlier.shape=NA, aes(fill=Bio_category), alpha=.2, width=.5) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   labs(y='Gene Target', fill='Method') + 
@@ -461,6 +480,35 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_twoMethods
 
 
 
+
+
+#Get biological relevance for geneSymbols
+
+head(panther)
+head(join_criteria())
+head(david_full)
+
+#All endpoints with EARs > 10-3
+priorityEndpoints
+priorityEndpoints_surf
+
+#List of endpoints, genes, and pathways
+overall_max_n_chem
+overall_max_n_all_surf
+
+full_panther_david <- separate_rows(overall_max_n_chem, genes) %>%
+  left_join(panther, by=c('genes' = 'gene_abbr')) %>%
+  left_join(david_full, by=c('genes' = 'GeneSymbol', 'species' = 'Species')) 
+
+select_panther_david <- full_panther_david %>% 
+  select( endPoint, chems, CASs, genes, species, gene_name,
+          ENTREZ_GENE_SUMMARY, OMIM_DISEASE, KEGG_PATHWAY, pathway)
+
+
+
+data.frame(select_panther_david) 
+
+full_panther_david[,1:10]
 
 #Pieces of code from package development
 
