@@ -403,7 +403,7 @@ top_mix_box_surf <- ggplot(unique(summed_EARs_surf[c('endPoint', 'sum_ear_endpoi
 
 print(top_mix_box_surf)
 
-ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_surf.png")), top_mix_box, height=4, width=6, units='in')
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_surf.png")), top_mix_box_surf, height=4, width=6, units='in')
 
 summed_EARs_surf$geneSymbol[is.na(summed_EARs_surf$geneSymbol)] <- paste0(summed_EARs_surf$Bio_category[is.na(summed_EARs_surf$geneSymbol)], "*")
 
@@ -477,6 +477,12 @@ print(top_mixgene_box_twomethod)
 
 ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_twoMethods.png")), 
        top_mixgene_box_twomethod, height=5, width=5, units='in')
+
+
+
+
+
+
 
 
 
