@@ -152,8 +152,11 @@ fake_sites <- sites_2016[1,]
 
 exclude = get_exclude(file.path(path_to_data, "Data/exclude32.csv")) %>%
 # exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv")) %>%
-  dplyr::select(-chnm) %>%
-  full_join(tox_list_example$exclusions)
+  dplyr::select(-chnm)
+
+if (any(grepl("\\?", exclude$CAS))){
+  stop('One of the exclusions CAS contains a "?". Check exclusions spreadsheet.')
+}
 
   
 # tox_list <- list("Data" = WW_2016_forToxEval, 
