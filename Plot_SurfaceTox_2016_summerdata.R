@@ -400,7 +400,8 @@ sitebyEAR2 <- ggplot(data=site_detection, aes(x=shortName, y=value, fill=group))
   theme(legend.position = 'bottom') +
   guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T)) +
   theme(axis.text.x = element_text(angle=90, vjust=0.5, hjust=1)) +
-  ggtitle(paste0("Surface water between ", date_filter[1], " and ", date_filter[2]))
+  ggtitle(paste0("Surface water between ", date_filter[1], " and ", date_filter[2])) +
+  theme(strip.background = element_blank())
 
 print(sitebyEAR2)
 
