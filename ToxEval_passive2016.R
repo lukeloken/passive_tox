@@ -47,10 +47,12 @@ site_order <- unique(chemicalSummary$shortName)
 site_ID_order <- unique(chemicalSummary$site)
 
 conc_table <- tox_list$chem_data %>%
-  filter(CAS %in% chemicalSummary$CAS)
+  filter(Value > 0)
+
+summary(conc_table)
 
 ggplot(tox_list$chem_data[tox_list$chem_data$Value>0,], aes(x=Value)) +
-  geom_histogram() +
+  geom_histogram(bins=30) +
   scale_x_log10()
 
 ###############################################################
@@ -160,8 +162,8 @@ chemicals_in <- tox_list$chem_data %>%
   left_join(unique(tox_list$chem_data[,c('chnm', 'CAS')])) %>%
   distinct() %>%
   arrange(chnm) %>%
-  left_join(tox_list$chem_info[,c('CAS', 'Class')]) %>%
-  filter(Class !="") %>%
+  left_join(unique(tox_list$chem_info[,c('CAS', 'Class')])) %>%
+  # filter(Class !="") %>%
   filter(CAS %in% chemicals_allpocis$CAS)
 
 #Chemicals included in concentration analysis
@@ -171,7 +173,8 @@ chemicals_zeroconc <- tox_list$chem_data %>%
   select(chnm, CAS, Value) %>%
   summarize(maxValue = max(Value, na.rm=T),
             n=n())  %>%
-  filter(CAS %in% chemicals_notdetected$CAS)
+  filter(CAS %in% chemicals_notdetected$CAS & 
+           chnm %in% chemicals_notdetected$chnm)
 
 # chemicals_in$Detections[is.na(chemicals_in$Detections)] <- 0
 
@@ -183,8 +186,8 @@ chemicals_out <- chemicalSummary %>%
   tally(name = 'Detections') %>%
   full_join(unique(chemicalSummary[,c('chnm', 'CAS', 'Class')])) %>%
   distinct() %>%
-  arrange(Class, desc(Detections), as.character(chnm)) %>%
-  filter(Class !="")
+  arrange(Class, desc(Detections), as.character(chnm)) 
+  # filter(Class !="")
 
 # chemicals_out$Detections[is.na(chemicals_out$Detections)] <- 0
 
