@@ -62,6 +62,8 @@ cas_df$CAS <- gsub(' ', '', cas_df$CAS)
 
 
 
+
+
 #Benchmarks
 #from Sam's surface water tox eval file
 benchmarks_df <- read_excel(file_in(file.path(path_to_data, 'Data/WQ_pesticides_Bench.xlsx')), sheet='Benchmarks') 
@@ -89,6 +91,84 @@ AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "RawData/GLR
                                     site_sheet = "Site List",
                                     year = 2016,
                                     skip_site = 2)
+
+# Load the sites
+sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
+  rename(site_no = `USGS Station ID`,
+         Date_in = Date...6,
+         Time_in = Time...7,
+         Date_out = Date...8,
+         Time_out = Time...9) %>%
+  mutate(Time_in = str_pad(Time_in, 4, pad = "0"),
+         Time_out = str_pad(Time_out, 4, pad = "0"),
+         Date_in = as.Date(Date_in),
+         Date_out = as.Date(Date_out)) %>%
+  mutate(Datetime_in = as.POSIXct(paste(Date_in, Time_in), format="%Y-%m-%d %H%M"),
+         Datetime_out = as.POSIXct(paste(Date_out, Time_out), format="%Y-%m-%d %H%M")) %>%
+  # mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
+  select(`Short Name`, `site_no`, Lake, Date_in, Date_out, Datetime_in, Datetime_out, Deployed)
+
+locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va", 'station_nm')]
+names(locations) <- c("site_no", 'dec_lat', 'dec_long', 'site_grouping')
+locations$site_grouping <- str_sub(locations$site_grouping,-2,-1)
+
+
+sites_2016<-left_join(sites_2016, locations) %>%
+  rename(SiteID = site_no) %>%
+  filter(SiteID %in% unique(WW_2016$SiteID)) %>%
+  distinct() %>%
+  group_by(`Short Name`, SiteID, Lake, site_grouping) %>%
+  summarize_all(.funs=mean)
+
+fake_sites <- sites_2016[1,]
+
+
+
+# Calculate new pocis rates based on deployment length
+
+POCIS_uptake_rates <- read_excel(file_in(file.path(path_to_data, 
+                                                   "Data",
+                                                   "additional GLRI pesticide Rs values.xlsx")), 
+                                 skip = 1)
+names(POCIS_uptake_rates)[1:2] <- c("chnm", "Rs")
+
+POCIS_uptake_rates <- POCIS_uptake_rates %>%
+  select(chnm, Rs) %>%
+  mutate(Rs = as.numeric(Rs)) %>%
+  filter(!is.na(Rs)) %>%
+  mutate(chnm2 = tolower(chnm)) %>%
+  select(-chnm)
+
+POCIS_uptake_rates$chnm2[grepl("desamino metribuzin", POCIS_uptake_rates$chnm2)] <- "metribuzin da"
+
+# Cw = N / (Rs * t) 
+# Cw (Time weighted concentration (ng/L)
+# N pocis concentration (ng/pocis)
+# Rs sampling rate (L/D)
+# t time (d)
+
+new_POCIS <- AllPOCIS_2016 %>%
+  mutate(chnm2 = tolower(chnm)) %>%
+  left_join(POCIS_uptake_rates, by = "chnm2") %>%
+  filter(!is.na(Rs)) %>%
+  left_join(select(ungroup(sites_2016), SiteID, Datetime_in, Datetime_out), by = "SiteID") %>%
+  mutate(Deploy_length_d = as.numeric(difftime(Datetime_out, Datetime_in, units = "days"))) %>%
+  mutate(Value = 0.001 *signif(Value / (Rs * Deploy_length_d), 3),
+         `Sample Date` = year(`Date Deployed`)) %>%
+  select(all_of(names(WW_2016))) %>%
+  arrange(chnm)
+
+new_POCIS_test <- filter(new_POCIS, Value > 0)
+unique(new_POCIS_test$chnm)
+
+#Merge with other time weighted concentrations
+WW_2016 <- WW_2016 %>%
+  filter(chnm != "Hydroxysimazine") %>%
+  full_join(new_POCIS)
+
+
+
+
 
 # average the two replicates for Saginow River Station
 WW_2016_forToxEval <- WW_2016 %>%
@@ -119,35 +199,6 @@ surface_mdl <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.x
 cas_df_surf <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.xlsx')), sheet='Chemicals')
 
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
-
-sites_2016 = readxl::read_excel(file_in(file.path(path_to_data, "RawData/GLRI 2016 POCIS pesticide data report.xlsx")), sheet = "Site List", skip = 2) %>%
-  rename(site_no = `USGS Station ID`,
-         Date_in = Date...6,
-         Time_in = Time...7,
-         Date_out = Date...8,
-         Time_out = Time...9) %>%
-  mutate(Time_in = str_pad(Time_in, 4, pad = "0"),
-         Time_out = str_pad(Time_out, 4, pad = "0"),
-         Date_in = as.Date(Date_in),
-         Date_out = as.Date(Date_out)) %>%
-  mutate(Datetime_in = as.POSIXct(paste(Date_in, Time_in), format="%Y-%m-%d %H%M"),
-         Datetime_out = as.POSIXct(paste(Date_out, Time_out), format="%Y-%m-%d %H%M")) %>%
-  # mutate(`Short Name` = substr(`Site Name`, start = 1, stop = 8)) %>%
-  select(`Short Name`, `site_no`, Lake, Date_in, Date_out, Datetime_in, Datetime_out, Deployed)
-
-locations <- readNWISsite(sites_2016$site_no)[c("site_no", "dec_lat_va", "dec_long_va", 'station_nm')]
-names(locations) <- c("site_no", 'dec_lat', 'dec_long', 'site_grouping')
-locations$site_grouping <- str_sub(locations$site_grouping,-2,-1)
-
-
-sites_2016<-left_join(sites_2016, locations) %>%
-  rename(SiteID = site_no) %>%
-  filter(SiteID %in% unique(WW_2016_forToxEval$SiteID)) %>%
-  distinct() %>%
-  group_by(`Short Name`, SiteID, Lake, site_grouping) %>%
-  summarize_all(.funs=mean)
-
-fake_sites <- sites_2016[1,]
 
 
 exclude = get_exclude(file.path(path_to_data, "Data/exclude32.csv")) %>%
