@@ -110,6 +110,15 @@ site_freq_EARDetected<-chemicalSummary2_surface %>%
 site_table <- unique(chemicalSummary_surface[c('shortName', 'site')])
 site_order_surface <- site_table$shortName[match(surface_ID_order, site_table$site)]
 
+site_table_v2 <- site_table %>%
+  mutate(LU = c("Wetland", "Forest", "Crops", "AgMix", 
+                      "Urban", "Urban", "Crops", "AgMix", 
+                      "Crops", "Urban", "Urban", "Crops", 
+                      "Crops", "Urban", "AgMix", "AgMix"),
+         Disturbance = c(1,1,1,4,3,4,4,3,2,2,5,5,3,1,2,1)) %>%
+  mutate(LU = factor(LU, c("Urban", "Crops", "AgMix", "Wetland", "Forest"))) %>%
+  arrange(LU, desc(Disturbance))
+
 site_detection <- full_join(site_freq_EAR0.01, site_freq_EAR0.001) %>%
   full_join(site_freq_EAR0.0001) %>%
   full_join(site_freq_EARDetected) %>%
@@ -337,4 +346,45 @@ print(sitebyMax_surfaceall)
 
 ggsave(file_out(file.path(path_to_data, "Figures/StackBox_EARorTQ_BySite_watersamples_allyear.png")), plot = sitebyMax_surfaceall, height=4, width=6)
 
+
+
+site_detection_max_v2 <- site_detection_max %>%
+  left_join(site_table_v2) %>%
+  arrange(LU, Disturbance) %>%
+  mutate(shortName = factor(shortName, rev(site_table_v2$shortName)))
+
+
+#Plot barplot by site 
+sitebyMax_surfaceall_v2 <- ggplot(data=site_detection_max_v2, aes(x=shortName, y=value, fill=group)) + 
+  geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
+  coord_flip() +
+  facet_grid(LU~., space="free", scales="free") +
+  labs(x='River', y='Number of chemicals', fill = 'EAR') + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(colour = "black", size=.5),
+        legend.title = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(size=8)) + 
+  scale_fill_manual(values = colors_EAR2,
+                    labels = c("Unknown EAR and TQ",
+                               expression(paste("EAR < 10"^"-4", " and TQ < 10"^"-2")),
+                               expression(paste("EAR > 10"^"-4", " or TQ > 10"^"-2")),
+                               expression(paste("EAR > 10"^"-3", " or TQ > 10"^"-1")),
+                               expression(paste("EAR > 10"^"-2", " or TQ > 1")))) +
+  # scale_fill_brewer(palette = "YlOrRd", labels = c("Detected", expression(paste("EAR > 10"^"-4")), expression(paste("EAR > 10"^"-3")))) +
+  scale_y_continuous(limits = c(0,max(site_detection_max_v2$n, na.rm = TRUE)+1), expand=c(0,0)) + 
+  theme(legend.position = 'bottom', legend.text.align = 0) +
+  guides(fill = guide_legend(title.position='left', title.hjust=0.5, reverse=T, ncol=2)) +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  theme(legend.margin=margin(0,0,0,0), legend.box.margin=margin(-5,-10,-5,-10))
+
+print(sitebyMax_surfaceall_v2)
+
+ggsave(file_out(file.path(path_to_data, "Figures",
+                          "StackBox_EARorTQ_BySiteHorizontal_watersamples_allyear.png")), 
+       plot = sitebyMax_surfaceall_v2, height=4, width=4)
 
