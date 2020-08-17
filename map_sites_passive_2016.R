@@ -325,7 +325,7 @@ second_pass <- ggplot() +
   # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
   coord_sf(crs = crs_plot,
            xlim = c(b["xmin"]+1000,b["xmax"]+10000),
-           ylim = c(b["ymin"],b["ymax"]-100000)) +
+           ylim = c(b["ymin"],b["ymax"]-90000)) +
   theme_minimal() +
   theme(panel.grid.minor = element_blank(),
         # panel.border = element_blank(),
@@ -356,37 +356,37 @@ ggsave(second_pass, filename = file_out(file.path(path_to_data, "Figures/site_ma
 
 ggplot() + 
   geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
-  geom_sf(data = basins, alpha = 0.5, aes(fill = `perAg2`*100)) +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = perAg*100)) +
   north(data=basins, location='topright') +
   scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Agriculture")
   
 ggplot() + 
   geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
-  geom_sf(data = basins, alpha = 0.5, aes(fill = `perUrban2`*100)) +
+  geom_sf(data = basins, alpha = 0.5, aes(fill = `perUrban`*100)) +
   north(data=basins, location='topright') +
   scale_fill_gradient(low = '#c7e9c0', high = '#00441b', name = "% Urban")
 
 #Working above here
 #Need to get lakes and watershed %ag data
 
-
-base_p <- ggplot() + 
-  geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
-  geom_sf(data = flowlines, color = "lightblue") +
-  geom_sf(data = GL, color = "gray50", fill=NA) +
-  
-  # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
-  # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
-
-  theme_minimal() +
-  theme(panel.grid.major = element_line(colour = 'transparent'), #Bug that's apparently getting fixed
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        axis.text = element_blank(),
-        axis.title = element_blank(), 
-        legend.position = c(.75, .75),
-        legend.direction = 'horizontal')
+# 
+# base_p <- ggplot() + 
+#   geom_sf(data = lakes, fill = "lightblue", color = "lightblue") +
+#   geom_sf(data = flowlines, color = "lightblue") +
+#   geom_sf(data = GL, color = "gray50", fill=NA) +
+#   
+#   # geom_sf(data = minneapolis, pch = "\u2605", size = 8) +
+#   # geom_text(aes(x = 214731.983109861, y = 838589.951769598, label = "Minneapolis", vjust = 3, hjust = 0.1), fontface = 'bold') +
+# 
+#   theme_minimal() +
+#   theme(panel.grid.major = element_line(colour = 'transparent'), #Bug that's apparently getting fixed
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank(),
+#         panel.background = element_blank(),
+#         axis.text = element_blank(),
+#         axis.title = element_blank(), 
+#         legend.position = c(.75, .75),
+#         legend.direction = 'horizontal')
 # add stuff
 # metolachlor_p <- base_p +
 #   geom_sf(data = basins, alpha = 0.5, aes(fill = `Ag..total`)) +
