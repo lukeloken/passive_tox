@@ -73,6 +73,12 @@ priorityEndpoints <- priorityEndpoints %>%
   left_join(unique(select(join_criteria(), geneSymbol,endPoint)), by = "endPoint")
   # left_join(unique(join_criteria()), by = "endPoint") 
 
+priorityEndpoints$geneSymbol[is.na(priorityEndpoints$geneSymbol)] <- paste0(priorityEndpoints$Bio_category[is.na(priorityEndpoints$geneSymbol)], "*")
+
+
+priorityGenes <- priorityEndpoints %>%
+  group_by(chnm, geneSymbol, site) %>%
+  summarize(EAR = max(EAR, na.rm=T))
 
 endpoint_bychem_boxplot <- ggplot(unique(priorityEndpoints[,c('endPoint', 'EAR', 'site', 'chnm', 'Bio_category')]), aes(y=endPoint, x=EAR)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
@@ -92,7 +98,7 @@ print(endpoint_bychem_boxplot)
 
 ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_byChemical.png")), endpoint_bychem_boxplot, height=6, width=8.5, units='in')
 
-endpoint_bychemgene_boxplot <- ggplot(priorityEndpoints, aes(y=geneSymbol, x=EAR)) +
+endpoint_bychemgene_boxplot <- ggplot(priorityGenes, aes(y=geneSymbol, x=EAR)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
   geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.2, size=1.5) + 
   geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) + 
@@ -121,10 +127,6 @@ genes_out <- priorityEndpoints %>%
 
 
 write.csv(genes_out, file = file_out(file.path(path_to_data, 'Data', 'priority_genes.csv')), row.names = F)
-
-
-
-
 
 
 #Priority endpoints for water data
@@ -238,6 +240,22 @@ top_combos <- top_mixes(chemicalSummary2, group_by_this,
 
 overall_max_n_chem <- overall_mixtures(top_combos, "max")
 
+full_genesummary <- gene_summary(overall_max_n_chem)
+
+entrez_genesummary <- gene_summary(overall_max_n_chem, 
+                                   columns = "entrez", 
+                                   species = "Homo sapiens") %>%
+  filter(species == "Homo sapiens")
+
+write.csv(full_genesummary, file = file_out(file.path(path_to_data, 'Data', 'passive_prioritygene_fullsummary.csv')), row.names = F)
+
+
+entrez_genesummary[,1:2]
+
+sample_EARmix <- EAR_mixtures(chemicalSummary2, group_by_this, ear_cutoff = 0.001)
+
+
+#plotting
 
 summed_EARs <- chemicalSummary2 %>%
   group_by(site, date, !!sym(group_by_this)) %>%
@@ -274,19 +292,22 @@ print(top_mix_box)
 ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot.png")), top_mix_box, height=4, width=6, units='in')
 
 
-gene_rank <- summed_EARs %>%
+summed_EARs_maxGene <- summed_EARs %>%
+  group_by(site, geneSymbol) %>%
+  summarize(sum_ear_endpoint = max(sum_ear_endpoint))
+
+gene_rank <- summed_EARs_maxGene %>%
   group_by(geneSymbol) %>%
   summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
   mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
   arrange(desc(order), sum_ear_median)
 
-
-summed_EARs <- summed_EARs %>%
+summed_EARs_maxGene <- summed_EARs_maxGene %>%
   left_join(select(gene_rank, geneSymbol, order)) %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank$geneSymbol))
 
 
-top_mixgene_box <- ggplot(summed_EARs, aes(y=geneSymbol, x=sum_ear_endpoint)) +
+top_mixgene_box <- ggplot(summed_EARs_maxGene, aes(y=geneSymbol, x=sum_ear_endpoint)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
   geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.1, size=1.5) +
   geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) +
@@ -407,17 +428,24 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_surf.p
 
 summed_EARs_surf$geneSymbol[is.na(summed_EARs_surf$geneSymbol)] <- paste0(summed_EARs_surf$Bio_category[is.na(summed_EARs_surf$geneSymbol)], "*")
 
-gene_rank_surf <- summed_EARs_surf %>%
+
+summed_EARs_maxGene_surf <- summed_EARs_surf %>%
+  group_by(site, geneSymbol) %>%
+  summarize(sum_ear_endpoint = max(sum_ear_endpoint))
+
+gene_rank_surf <- summed_EARs_maxGene_surf %>%
   group_by(geneSymbol) %>%
   summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
   mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
   arrange(desc(order), sum_ear_median)
 
-summed_EARs_surf <- summed_EARs_surf %>%
+summed_EARs_maxGene_surf <- summed_EARs_maxGene_surf %>%
   left_join(select(gene_rank_surf, geneSymbol, order)) %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank_surf$geneSymbol))
 
-top_mixgene_box_surf <- ggplot(summed_EARs_surf, aes(y=geneSymbol, x=sum_ear_endpoint)) +
+
+
+top_mixgene_box_surf <- ggplot(summed_EARs_maxGene_surf, aes(y=geneSymbol, x=sum_ear_endpoint)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
   geom_jitter(shape=16, color='blue', alpha=0.5, width=0, height=.1, size=1.5) +
   geom_boxplot(outlier.shape=NA, fill='blue', alpha=.2, width=.5) +
@@ -431,18 +459,14 @@ top_mixgene_box_surf <- ggplot(summed_EARs_surf, aes(y=geneSymbol, x=sum_ear_end
 
 print(top_mixgene_box_surf)
 
-ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot.png")), 
-       top_mixgene_box, height=4, width=4, units='in')
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_surf.png")), 
+       top_mixgene_box_surf, height=4, width=4, units='in')
 
 
 
-gene_combine <- summed_EARs_surf %>%
+gene_combine <- summed_EARs_maxGene_surf %>%
   mutate(method = 'Water') %>%
-  full_join(select(summed_EARs, -date))
-
-gene_combine$method[is.na(gene_combine$method)] <- 'Passive'
-gene_combine$geneSymbol[is.na(gene_combine$geneSymbol)] <- paste0(gene_combine$Bio_category[is.na(gene_combine$geneSymbol)], "*")
-
+  bind_rows(mutate(summed_EARs_maxGene, method = 'Passive'))
 
 gene_rank_combine <- gene_combine %>%
   group_by(geneSymbol, order) %>%
@@ -482,6 +506,45 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_twoMethods
 
 
 
+endpoint_combine <- summed_EARs_surf %>%
+  mutate(method = 'Water') %>%
+  bind_rows(mutate(summed_EARs, method = 'Passive')) %>%
+  select(site, endPoint, sum_ear_endpoint, n, method) %>%
+  distinct()
+
+endpoint_rank_combine <- endpoint_combine %>%
+  group_by(endPoint) %>%
+  summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
+  arrange(sum_ear_median)
+
+endpoint_combine <- endpoint_combine %>%
+  mutate(endPoint = factor(endPoint, endpoint_rank_combine$endPoint),
+         method = factor(method, c('Passive', 'Water')))
+
+
+
+top_mix_endpoint_box_twomethod <- ggplot(endpoint_combine,
+                                         aes(y=endPoint, x=sum_ear_endpoint)) +
+  scale_fill_manual(values = c('red', 'blue')) + 
+  scale_color_manual(values = c('red', 'blue')) + 
+  geom_vline(xintercept=0.001, linetype='dashed') +
+  geom_jitter(aes(color=method), shape=16, alpha=0.5, width=0, height=.2, size=1) +
+  geom_boxplot(aes(fill=method), outlier.shape=NA, alpha=.2, width=.6, col='grey20') +
+  # geom_jitter(shape=16, aes(color=Bio_category), alpha=0.5, width=0, height=.1, size=1.5) + 
+  # geom_boxplot(outlier.shape=NA, aes(fill=Bio_category), alpha=.2, width=.5) + 
+  scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
+  labs(y='ToxCast assay name') + 
+  theme_tox() +
+  theme(legend.position='none', legend.title.align=0.5) +
+  guides(col = guide_legend(ncol = 1)) +
+  facet_wrap(~method) +
+  theme(strip.background = element_rect(fill=NA, color=NA))
+
+print(top_mix_endpoint_box_twomethod)
+
+
+ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_twoMethods.png")), 
+       top_mix_endpoint_box_twomethod, height=5, width=6, units='in')
 
 
 
@@ -495,12 +558,14 @@ head(join_criteria())
 head(david_full)
 
 #All endpoints with EARs > 10-3
-priorityEndpoints
+priorityEndpoints 
 priorityEndpoints_surf
 
 #List of endpoints, genes, and pathways
 overall_max_n_chem
 overall_max_n_all_surf
+
+
 
 full_panther_david <- separate_rows(overall_max_n_chem, genes) %>%
   left_join(panther, by=c('genes' = 'gene_abbr')) %>%
