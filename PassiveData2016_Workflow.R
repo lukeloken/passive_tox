@@ -55,11 +55,13 @@ source('ToxEval_watersamples2016.R')
 
 
 #Plot number of chemicals by site, and number of sites by chemical barplots
-source('Plot_PassiveTox_2016.R')
+# source('Plot_PassiveTox_2016.R')
 
 #Plot number of chemicals by site, and number of sites by chemical barplots for water samples
-source('Plot_SurfaceTox_2016.R')
+# source('Plot_SurfaceTox_2016.R')
 
 #Combine water and passive samples and compare. 
-source('Compare_Plot_Passive_V_WaterSample.R')
+# source('Compare_Plot_Passive_V_WaterSample.R')
 
+#Initial script to analyze mixtures
+source('explore_toxmixtures_passive_2016.R')
