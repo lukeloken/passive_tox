@@ -276,7 +276,7 @@ print(chemicalbyEAR3)
 ggsave(file_out(file.path(path_to_data, "Figures/StackBar_ByEAR_Bychem3.png")), plot = chemicalbyEAR3, height=5, width=6)
 
 
-#Plot barplot by chemical horiztonal
+# Plot barplot by chemical horiztonal
 # chemicalbyEAR2_horiztonal <- ggplot(data=chem_detection, aes(x=chnm2, y=value, fill=group)) + 
 #   geom_bar(color = 'grey', width=.8, size=.1, stat='identity') +  
 #   coord_flip() +
@@ -741,7 +741,7 @@ TQ_box_passive_withLegend <-TQbox_passive +
 
 mylegend<-g_legend(TQ_box_passive_withLegend)
 
-rm(TQ_box_withLegend_passive)
+rm(TQ_box_passive_withLegend)
 
 
 boxes_withLegend_passive<-grid.arrange(box_by_box_passive, mylegend, nrow=2, heights=c(15,1))
