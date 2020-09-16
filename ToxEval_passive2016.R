@@ -49,7 +49,18 @@ site_ID_order <- unique(chemicalSummary$site)
 conc_table <- tox_list$chem_data %>%
   filter(Value > 0)
 
-summary(conc_table)
+summary(conc_table) 
+
+missingTox <- conc_table %>%
+  filter(!CAS %in% chemicalSummary$CAS) %>%
+  group_by(chnm) %>%
+  summarize(min = min(Value),
+            mean = mean(Value), 
+            max = max(Value), 
+            n = n()) %>%
+  arrange(desc(n))
+
+summary(missingTox)
 
 ggplot(tox_list$chem_data[tox_list$chem_data$Value>0,], aes(x=Value)) +
   geom_histogram(bins=30) +
@@ -278,5 +289,5 @@ chemicals_notavailable <- chemicals_combine %>%
 write.csv(chemicals_notavailable, file = file_out(file.path(path_to_data, "Data/Chemicals Lacking Evaluations.csv")), row.names=F)
 
 
-rm(ACClong, ACClong_allpocis, cleaned_ep, filtered_ep )
+rm(ACClong_allpocis, cleaned_ep, filtered_ep )
 
