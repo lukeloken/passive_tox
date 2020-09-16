@@ -21,41 +21,6 @@ chemicalSummary2_surf <- chemicalSummary_surface %>%
 chemicalSummary2 <- chemicalSummary %>%
   mutate(shortName = factor(shortName, site_order))
 
-plot_stackbar(chemicalSummary2, x='shortName', x_label='Site', 
-              y_label="Number of chemicals",
-              fill='EAR', stack='chnm', 
-              breaks=c(.0001, .001, .01)) + 
-  theme(axis.text.x = element_text(angle=90, hjust=1))
-
-
-plot_stackbar(chemicalSummary2, x='chnm', x_label='Chemical', 
-              y_label="Number of rivers",
-              fill='EAR', stack='site', 
-              breaks=c(.0001, .001, .01)) + 
-  theme(axis.text.x = element_text(angle=90, hjust=1))
-
-
-plot_stackbar(chemicalSummary_surface, x='shortName', x_label='Site', 
-              y_label="Number of chemicals",
-              fill='EAR', stack='chnm', 
-              breaks=c(.0001, .001, .01)) + 
-  theme(axis.text.x = element_text(angle=90, hjust=1))
-
-
-plot_stackbar(chemicalSummary_surface, x='chnm', x_label='Chemical', 
-              y_label="Number of rivers",
-              fill='EAR', stack='site', 
-              breaks=c(.0001, .001, .01)) + 
-  theme(axis.text.x = element_text(angle=90, hjust=1))
-
-
-# cs <- chemical_summary
-# group_by_this <- "endPoint"
-# ear_threshold <- 0.001
-# site_threshold_percent <- 10
-# n_sites <- length(unique(chemical_summary$site))
-# site_threshold <- ceiling(n_sites / site_threshold_percent)
-
 
 #Priority endpoints for passive data
 
@@ -240,19 +205,91 @@ top_combos <- top_mixes(chemicalSummary2, group_by_this,
 
 overall_max_n_chem <- overall_mixtures(top_combos, "max")
 
-full_genesummary <- gene_summary(overall_max_n_chem)
+
+gene_table <- gene_mixtures(overall_max_n_chem)  
+
+
+full_genesummary <- gene_summary(overall_max_n_chem, species = c("Homo sapiens", 
+                                                                 "Danio rerio", 
+                                                                 "Xenopus tropicalis"))
 
 entrez_genesummary <- gene_summary(overall_max_n_chem, 
                                    columns = "entrez", 
                                    species = "Homo sapiens") %>%
   filter(species == "Homo sapiens")
 
-write.csv(full_genesummary, file = file_out(file.path(path_to_data, 'Data', 'passive_prioritygene_fullsummary.csv')), row.names = F)
+
+int <- full_genesummary %>%
+  select(gene_abbr, species, gene_name, pathway_name, ENTREZ_GENE_SUMMARY, 
+         GOTERM_BP_DIRECT, GOTERM_CC_DIRECT, GOTERM_MF_DIRECT, 
+         KEGG_PATHWAY, OMIM_DISEASE) %>%
+  distinct()
+
+write.csv(int, file = file_out(file.path(path_to_data, 'Data', 'passive_prioritygene_interesting.csv')), row.names = F)
+
+
+int2 <- int %>%
+  group_by(gene_abbr) %>%
+  summarize(orthologs = paste(unique(species[!is.na(species)]), 
+                              collapse= "|"),
+            pathways = paste(unique(pathway_name[!is.na(pathway_name)]), 
+                             collapse= ","),
+            KEGG_PATHWAY = paste(unique(KEGG_PATHWAY[!is.na(KEGG_PATHWAY)]),
+                                 collapse= ","),
+            OMIM_DISEASE = paste(unique(OMIM_DISEASE[!is.na(OMIM_DISEASE)]), 
+                                 collapse= ","),
+            ENTREZ_GENE_SUMMARY = paste(unique(ENTREZ_GENE_SUMMARY[!is.na(ENTREZ_GENE_SUMMARY)]),
+                                        collapse= "|"),
+            GOTERM_BP_DIRECT = paste(unique(GOTERM_BP_DIRECT[!is.na(GOTERM_BP_DIRECT)]), 
+                                     collapse= ","),
+            GOTERM_CC_DIRECT = paste(unique(GOTERM_CC_DIRECT[!is.na(GOTERM_CC_DIRECT)]), 
+                                     collapse= ","),
+            GOTERM_MF_DIRECT = paste(unique(GOTERM_MF_DIRECT[!is.na(GOTERM_MF_DIRECT)]), 
+                                     collapse= ","),
+            .groups = "drop") %>%
+  mutate(pathways = unlist(lapply(strsplit(pathways, ","), 
+                function(l) paste(l, collapse = "|"))),
+         KEGG_PATHWAY = unlist(lapply(strsplit(KEGG_PATHWAY, ","), 
+                                      function(l) paste(l, collapse = "|"))),
+         OMIM_DISEASE = unlist(lapply(strsplit(OMIM_DISEASE, ","), 
+                                      function(l) paste(l, collapse = "|"))),
+         GOTERM_BP_DIRECT = unlist(lapply(strsplit(GOTERM_BP_DIRECT, ","), 
+                                      function(l) paste(l, collapse = "|"))),
+         GOTERM_CC_DIRECT = unlist(lapply(strsplit(GOTERM_CC_DIRECT, ","), 
+                                      function(l) paste(l, collapse = "|"))),
+         GOTERM_MF_DIRECT = unlist(lapply(strsplit(GOTERM_MF_DIRECT, ","), 
+                                      function(l) paste(l, collapse = "|")))) %>%
+  left_join(unique(select(overall_max_n_chem, genes, AOP_ids, AOP_names)), by = c("gene_abbr" = "genes"))
+
+
+data.frame(int2)
+
+all_kegg <- paste(unique(int2$KEGG_PATHWAY), collapse= "|")
+all_kegg <- unique(unlist(strsplit(all_kegg, "\\|")))
+all_kegg <- unique(unlist(strsplit(all_kegg, ":")))
+length(all_kegg[grepl('hsa', all_kegg)])
+length(all_kegg[grepl('dre', all_kegg)])
+length(all_kegg[grepl('xtr', all_kegg)])
+
+all_kegg <- all_kegg[!grepl('hsa', all_kegg)]
+all_kegg <- all_kegg[!grepl('dre', all_kegg)]
+all_kegg <- all_kegg[!grepl('xtr', all_kegg)]
+
+int2 <- full_join(gene_table, int2, by = c("genes" = "gene_abbr")) %>%
+  rename(GeneSymbol = genes) 
+
+int2[is.na(int2)] <- ""
+
+
+write.csv(int2, file = file_out(file.path(path_to_data, 'Data', 'passive_prioritygene_interesting2.csv')), row.names = F)
+
 
 
 entrez_genesummary[,1:2]
 
 sample_EARmix <- EAR_mixtures(chemicalSummary2, group_by_this, ear_cutoff = 0.001)
+
+site_EARmix <- site_mixtures(sample_EARmix, ear_cutoff = 0.001)
 
 
 #plotting
@@ -350,6 +387,7 @@ write.csv(priority_max, file = file_out(file.path(path_to_data, 'Data', 'priorit
 overall_max_n_all_surf <- overall_mixtures(all_combos_surf, "max")
 
 
+
 endpoint_review_surf <- overall_max_n_all_surf %>%
   dplyr::select(endPoint, CASs) %>%
   tidyr::separate(CASs, sep='\\|', into = letters[1:10], fill='right') %>%
@@ -379,6 +417,8 @@ top_combos_surf <- top_mixes(chemicalSummary2_summer,
 
 
 overall_max_n_chem_surf <- overall_mixtures(top_combos_surf, "max")
+
+gene_table_surf <- gene_mixtures(overall_max_n_chem_surf)  
 
 
 summed_EARs_surf <- chemicalSummary_surface %>%
