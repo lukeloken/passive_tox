@@ -111,12 +111,12 @@ site_table <- unique(chemicalSummary_surface[c('shortName', 'site')])
 site_order_surface <- site_table$shortName[match(surface_ID_order, site_table$site)]
 
 site_table_v2 <- site_table %>%
-  mutate(LU = c("Wetland", "Forest", "Crops", "AgMix", 
+  mutate(LU = c("Natural", "Natural", "Crops", "AgMix", 
                       "Urban", "Urban", "Crops", "AgMix", 
                       "Crops", "Urban", "Urban", "Crops", 
                       "Crops", "Urban", "AgMix", "AgMix"),
-         Disturbance = c(1,1,1,4,3,4,4,3,2,2,5,5,3,1,2,1)) %>%
-  mutate(LU = factor(LU, c("Urban", "Crops", "AgMix", "Wetland", "Forest"))) %>%
+         Disturbance = c(1,2,1,4,3,4,4,3,2,2,5,5,3,1,2,1)) %>%
+  mutate(LU = factor(LU, c("Urban", "Crops", "AgMix", "Natural"))) %>%
   arrange(LU, desc(Disturbance))
 
 site_detection <- full_join(site_freq_EAR0.01, site_freq_EAR0.001) %>%
@@ -383,6 +383,8 @@ sitebyMax_surfaceall_v2 <- ggplot(data=site_detection_max_v2, aes(x=shortName, y
   theme(legend.margin=margin(0,0,0,0), legend.box.margin=margin(-5,-10,-5,-10))
 
 print(sitebyMax_surfaceall_v2)
+
+saveRDS(sitebyMax_surfaceall_v2,file = file.path(path_to_data, "Figures", "SurfaceEARTQ_bySite_v2.rds") )
 
 ggsave(file_out(file.path(path_to_data, "Figures",
                           "StackBox_EARorTQ_BySiteHorizontal_watersamples_allyear.png")), 
