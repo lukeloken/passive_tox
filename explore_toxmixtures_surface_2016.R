@@ -13,6 +13,110 @@ metolachlor_CAS <- filter(tox_list_surface$chem_info, parent_pesticide == "Metol
 
 cs <- cs[-which(cs$endPoint == "TOX21_p53_BLA_p5_ratio" & cs$CAS %in% metolachlor_CAS),]
 
+top_surf_mix <- read_excel(file.path(path_to_data, "Data", "top_eps_AOPs.xlsx"))
+surf_genes <- unique(toupper(unlist(strsplit((top_surf_mix$intended_target_gene_symbol), "\\|"))))
+surf_genes <- unique(gsub(" ", "", surf_genes))
+surf_endpoints <- unique(top_surf_mix$endPoint)
+
+cs_surf <- filter(cs, endPoint %in% surf_endpoints)
+
+
+top_combos_surf <- top_mixes(cs_surf, "endPoint", 
+                        0.001,
+                        1) 
+
+
+overall_max_n_chem_surf <- overall_mixtures(top_combos_surf, "max")
+
+# gene_table <- gene_mixtures(overall_max_n_chem_surf, chemicalSummary2)  
+
+
+full_genesummary <- gene_summary(overall_max_n_chem_surf, species = c("Homo sapiens", 
+                                                                 "Danio rerio", 
+                                                                 "Xenopus tropicalis"))
+
+entrez_genesummary <- gene_summary(overall_max_n_chem_surf, 
+                                   columns = "entrez", 
+                                   species = "Homo sapiens") %>%
+  filter(species == "Homo sapiens")
+
+
+int <- full_genesummary %>%
+  select(gene_abbr, species, gene_name, pathway_name, ENTREZ_GENE_SUMMARY, 
+         GOTERM_BP_DIRECT, GOTERM_CC_DIRECT, GOTERM_MF_DIRECT, 
+         KEGG_PATHWAY, OMIM_DISEASE) %>%
+  distinct()
+
+write.csv(int, file = file_out(file.path(path_to_data, 'Data', 'surface_prioritygene_interesting.csv')), row.names = F)
+
+
+int2 <- int %>%
+  group_by(gene_abbr) %>%
+  summarize(orthologs = paste(unique(species[!is.na(species)]), 
+                              collapse= "|"),
+            pathways = paste(unique(pathway_name[!is.na(pathway_name)]), 
+                             collapse= ","),
+            KEGG_PATHWAY = paste(unique(KEGG_PATHWAY[!is.na(KEGG_PATHWAY)]),
+                                 collapse= ","),
+            OMIM_DISEASE = paste(unique(OMIM_DISEASE[!is.na(OMIM_DISEASE)]), 
+                                 collapse= ","),
+            ENTREZ_GENE_SUMMARY = paste(unique(ENTREZ_GENE_SUMMARY[!is.na(ENTREZ_GENE_SUMMARY)]),
+                                        collapse= "|"),
+            GOTERM_BP_DIRECT = paste(unique(GOTERM_BP_DIRECT[!is.na(GOTERM_BP_DIRECT)]), 
+                                     collapse= ","),
+            GOTERM_CC_DIRECT = paste(unique(GOTERM_CC_DIRECT[!is.na(GOTERM_CC_DIRECT)]), 
+                                     collapse= ","),
+            GOTERM_MF_DIRECT = paste(unique(GOTERM_MF_DIRECT[!is.na(GOTERM_MF_DIRECT)]), 
+                                     collapse= ","),
+            .groups = "drop") %>%
+  mutate(pathways = unlist(lapply(strsplit(pathways, ","), 
+                                  function(l) paste(l, collapse = "|"))),
+         KEGG_PATHWAY = unlist(lapply(strsplit(KEGG_PATHWAY, ","), 
+                                      function(l) paste(l, collapse = "|"))),
+         OMIM_DISEASE = unlist(lapply(strsplit(OMIM_DISEASE, ","), 
+                                      function(l) paste(l, collapse = "|"))),
+         GOTERM_BP_DIRECT = unlist(lapply(strsplit(GOTERM_BP_DIRECT, ","), 
+                                          function(l) paste(l, collapse = "|"))),
+         GOTERM_CC_DIRECT = unlist(lapply(strsplit(GOTERM_CC_DIRECT, ","), 
+                                          function(l) paste(l, collapse = "|"))),
+         GOTERM_MF_DIRECT = unlist(lapply(strsplit(GOTERM_MF_DIRECT, ","), 
+                                          function(l) paste(l, collapse = "|")))) %>%
+  left_join(unique(select(overall_max_n_chem_surf, genes, AOP_ids)), by = c("gene_abbr" = "genes"))
+
+
+data.frame(int2)
+
+all_kegg <- paste(unique(int2$KEGG_PATHWAY), collapse= "|")
+all_kegg <- unique(unlist(strsplit(all_kegg, "\\|")))
+all_kegg <- unique(unlist(strsplit(all_kegg, ":")))
+length(all_kegg[grepl('hsa', all_kegg)])
+length(all_kegg[grepl('dre', all_kegg)])
+length(all_kegg[grepl('xtr', all_kegg)])
+
+all_kegg <- all_kegg[!grepl('hsa', all_kegg)]
+all_kegg <- all_kegg[!grepl('dre', all_kegg)]
+all_kegg <- all_kegg[!grepl('xtr', all_kegg)]
+
+
+write.csv(int2, file = file_out(file.path(path_to_data, 'Data', 'surface_prioritygene_interesting2.csv')), row.names = F)
+
+
+
+
+
+
+surf_david <- david_full %>%
+  full_join(panther, by = c("GeneSymbol" = "gene_abbr", "Species" = "species")) %>%
+  filter(GeneSymbol %in% surf_genes) %>%
+  filter(Species %in% c('Homo sapiens', 'Xenopus tropicalis', 'Danio rerio')) %>%
+  distinct() %>%
+  arrange(GeneSymbol) %>%
+    select(GeneSymbol, `Gene Name`, Species, pathway, KEGG_PATHWAY, OMIM_DISEASE,
+           ENTREZ_GENE_SUMMARY, GOTERM_BP_DIRECT, GOTERM_CC_DIRECT,
+           GOTERM_MF_DIRECT)
+
+write.csv(surf_david, file = file.path(path_to_data, "Data", "top_eps_AOPs_DAVID.csv"), row.names = FALSE)
+
 # cs <- chemicalSummary_surface
 group_by_this <- "endPoint"
 ear_threshold <- .01
