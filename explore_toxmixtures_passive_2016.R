@@ -165,7 +165,7 @@ write.csv(genes_out_surf, file = file_out(file.path(path_to_data, 'Data', 'prior
 # #########
 # Mixtures
 # #########
-
+# group_by_this <- "AOP"
 group_by_this <- "endPoint"
 ear_threshold <- .001
 site_threshold <- 1.9
@@ -209,18 +209,17 @@ overall_max_n_chem <- overall_mixtures(top_combos, "max")
 gene_table <- gene_mixtures(overall_max_n_chem)  
 
 
-full_genesummary <- gene_summary(overall_max_n_chem, species = c("Homo sapiens", 
+full_genesummary <- gene_functions(overall_max_n_chem, species = c("Homo sapiens", 
                                                                  "Danio rerio", 
                                                                  "Xenopus tropicalis"))
 
-entrez_genesummary <- gene_summary(overall_max_n_chem, 
+entrez_genesummary <- gene_functions(overall_max_n_chem, 
                                    columns = "entrez", 
-                                   species = "Homo sapiens") %>%
-  filter(species == "Homo sapiens")
+                                   species = "Homo sapiens") 
 
 
 int <- full_genesummary %>%
-  select(gene_abbr, species, gene_name, pathway_name, ENTREZ_GENE_SUMMARY, 
+  select(geneSymbol, Species, gene_name, pathway_name, ENTREZ_GENE_SUMMARY, 
          GOTERM_BP_DIRECT, GOTERM_CC_DIRECT, GOTERM_MF_DIRECT, 
          KEGG_PATHWAY, OMIM_DISEASE) %>%
   distinct()
@@ -229,8 +228,8 @@ write.csv(int, file = file_out(file.path(path_to_data, 'Data', 'passive_priority
 
 
 int2 <- int %>%
-  group_by(gene_abbr) %>%
-  summarize(orthologs = paste(unique(species[!is.na(species)]), 
+  group_by(geneSymbol) %>%
+  summarize(orthologs = paste(unique(Species[!is.na(Species)]), 
                               collapse= "|"),
             pathways = paste(unique(pathway_name[!is.na(pathway_name)]), 
                              collapse= ","),
@@ -259,7 +258,7 @@ int2 <- int %>%
                                       function(l) paste(l, collapse = "|"))),
          GOTERM_MF_DIRECT = unlist(lapply(strsplit(GOTERM_MF_DIRECT, ","), 
                                       function(l) paste(l, collapse = "|")))) %>%
-  left_join(unique(select(overall_max_n_chem, genes, AOP_ids, AOP_names)), by = c("gene_abbr" = "genes"))
+  left_join(unique(select(overall_max_n_chem, genes, AOP_ids, AOP_names)), by = c("geneSymbol" = "genes"))
 
 
 data.frame(int2)
@@ -275,8 +274,7 @@ all_kegg <- all_kegg[!grepl('hsa', all_kegg)]
 all_kegg <- all_kegg[!grepl('dre', all_kegg)]
 all_kegg <- all_kegg[!grepl('xtr', all_kegg)]
 
-int2 <- full_join(gene_table, int2, by = c("genes" = "gene_abbr")) %>%
-  rename(GeneSymbol = genes) 
+int2 <- full_join(gene_table, int2, by = c("geneSymbol"))
 
 int2[is.na(int2)] <- ""
 
@@ -287,7 +285,24 @@ write.csv(int2, file = file_out(file.path(path_to_data, 'Data', 'passive_priorit
 
 entrez_genesummary[,1:2]
 
-sample_EARmix <- EAR_mixtures(chemicalSummary2, group_by_this, ear_cutoff = 0.001)
+sample_EARmix <- EAR_mixtures(chemicalSummary2, group_by_this)
+
+AOP_table <- left_join(sample_EARmix, AOP_crosswalk, by = "endPoint") %>%
+  filter(!is.na(ID)) %>%
+  group_by(ID, AOP_title, site) %>%
+  summarize(AOPsum = sum(EARsum), 
+            genes = paste(unique(geneSymbol[!is.na(geneSymbol)]), collapse = "|"),
+            endPoints = paste(unique(endPoint[!is.na(endPoint)]), collapse = "|")) %>%
+  filter(AOPsum > ear_threshold) %>%
+  group_by(ID, AOP_title, genes, endPoints) %>%
+  summarize(AOP_sum_mean = round(mean(AOPsum, na.rm=T), 5),
+            AOP_sum_max = round(max(AOPsum, na.rm=T), 5), 
+            sites =  paste(unique(site[!is.na(site)]), collapse = "|")) %>%
+  select(ID, AOP_sum_max, AOP_sum_mean, everything())
+  
+data.frame(AOP_table)
+
+write.csv(AOP_table, file = file.path(path_to_data, "Data", "PassiveAOP_results.csv"), row.names = FALSE)
 
 site_EARmix <- site_mixtures(sample_EARmix, ear_cutoff = 0.001)
 
@@ -329,22 +344,34 @@ print(top_mix_box)
 ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot.png")), top_mix_box, height=4, width=6, units='in')
 
 
-summed_EARs_maxGene <- summed_EARs %>%
-  group_by(site, geneSymbol) %>%
-  summarize(sum_ear_endpoint = max(sum_ear_endpoint))
 
-gene_rank <- summed_EARs_maxGene %>%
+summed_EARs_maxGene <- sample_EARmix %>%
+  group_by(site, geneSymbol) %>%
+  summarize(max_ear_gene = max(EARsum, na.rm = TRUE),
+            .groups = "drop") 
+
+# summed_EARs_maxGene <- summed_EARs %>%
+#   group_by(site, geneSymbol) %>%
+#   summarize(sum_ear_endpoint = max(sum_ear_endpoint))
+
+priority_genes <- summed_EARs_maxGene %>%
   group_by(geneSymbol) %>%
-  summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
+  mutate(n_exceed = length(which(max_ear_gene > ear_threshold))) %>%
+  filter(n_exceed > site_threshold) %>%
+  select(-n_exceed) 
+
+gene_rank <- priority_genes %>%
+  group_by(geneSymbol) %>%
+  summarize(sum_ear_median = median(max_ear_gene, na.rm=T)) %>%
   mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
   arrange(desc(order), sum_ear_median)
 
-summed_EARs_maxGene <- summed_EARs_maxGene %>%
+priority_genes <- priority_genes %>%
   left_join(select(gene_rank, geneSymbol, order)) %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank$geneSymbol))
 
 
-top_mixgene_box <- ggplot(summed_EARs_maxGene, aes(y=geneSymbol, x=sum_ear_endpoint)) +
+top_mixgene_box <- ggplot(priority_genes, aes(y=geneSymbol, x=max_ear_gene)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
   geom_jitter(shape=16, color='red', alpha=0.5, width=0, height=.1, size=1.5) +
   geom_boxplot(outlier.shape=NA, fill='red', alpha=.2, width=.5) +
@@ -385,6 +412,8 @@ priority_max_fancy <- overall_df_format(priority_max, class_key)
 write.csv(priority_max, file = file_out(file.path(path_to_data, 'Data', 'priority_mixtures_surface.csv')), row.names = F)
 
 overall_max_n_all_surf <- overall_mixtures(all_combos_surf, "max")
+
+sample_EARmix_surf <- EAR_mixtures(chemicalSummary2_summer, group_by_this)
 
 
 
@@ -466,26 +495,56 @@ print(top_mix_box_surf)
 
 ggsave(file_out(file.path(path_to_data, "Figures/PriorityEndpointsBoxplot_surf.png")), top_mix_box_surf, height=4, width=6, units='in')
 
-summed_EARs_surf$geneSymbol[is.na(summed_EARs_surf$geneSymbol)] <- paste0(summed_EARs_surf$Bio_category[is.na(summed_EARs_surf$geneSymbol)], "*")
+# summed_EARs_surf$geneSymbol[is.na(summed_EARs_surf$geneSymbol)] <- paste0(summed_EARs_surf$Bio_category[is.na(summed_EARs_surf$geneSymbol)], "*")
+
+sample_EARmix_surf$geneSymbol[is.na(sample_EARmix_surf$geneSymbol)] <- 
+  paste0(sample_EARmix_surf$endPoint[is.na(sample_EARmix_surf$geneSymbol)], "*")
+  
+sample_EARmix_surf$geneSymbol[grepl("Tanguay", sample_EARmix_surf$endPoint)] <- 
+  paste0("Zebrafish*")
 
 
-summed_EARs_maxGene_surf <- summed_EARs_surf %>%
+summed_EARs_maxGene_surf <- sample_EARmix_surf %>%
   group_by(site, geneSymbol) %>%
-  summarize(sum_ear_endpoint = max(sum_ear_endpoint))
+  summarize(max_ear_gene = max(EARsum, na.rm = TRUE),
+            .groups = "drop") 
 
-gene_rank_surf <- summed_EARs_maxGene_surf %>%
+priority_genes_surf <- summed_EARs_maxGene_surf %>%
   group_by(geneSymbol) %>%
-  summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
+  mutate(n_exceed = length(which(max_ear_gene > ear_threshold))) %>%
+  filter(n_exceed > site_threshold) %>%
+  select(-n_exceed) 
+
+gene_rank_surf <- priority_genes_surf %>%
+  group_by(geneSymbol) %>%
+  summarize(sum_ear_median = median(max_ear_gene, na.rm=T)) %>%
   mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
   arrange(desc(order), sum_ear_median)
 
-summed_EARs_maxGene_surf <- summed_EARs_maxGene_surf %>%
+priority_genes_surf <- priority_genes_surf %>%
   left_join(select(gene_rank_surf, geneSymbol, order)) %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank_surf$geneSymbol))
 
 
+# 
+# 
+# summed_EARs_maxGene_surf <- summed_EARs_surf %>%
+#   group_by(site, geneSymbol) %>%
+#   summarize(sum_ear_endpoint = max(sum_ear_endpoint))
+# 
+# gene_rank_surf <- summed_EARs_maxGene_surf %>%
+#   group_by(geneSymbol) %>%
+#   summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
+#   mutate(order = ifelse(grepl("\\*", geneSymbol), 2, 1)) %>%
+#   arrange(desc(order), sum_ear_median)
+# 
+# summed_EARs_maxGene_surf <- summed_EARs_maxGene_surf %>%
+#   left_join(select(gene_rank_surf, geneSymbol, order)) %>%
+#   mutate(geneSymbol = factor(geneSymbol, gene_rank_surf$geneSymbol))
+# 
 
-top_mixgene_box_surf <- ggplot(summed_EARs_maxGene_surf, aes(y=geneSymbol, x=sum_ear_endpoint)) +
+
+top_mixgene_box_surf <- ggplot(priority_genes_surf, aes(y=geneSymbol, x=max_ear_gene)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
   geom_jitter(shape=16, color='blue', alpha=0.5, width=0, height=.1, size=1.5) +
   geom_boxplot(outlier.shape=NA, fill='blue', alpha=.2, width=.5) +
@@ -504,14 +563,14 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_surf.png")
 
 
 
-gene_combine <- summed_EARs_maxGene_surf %>%
+gene_combine <- priority_genes_surf %>%
   mutate(method = 'Water') %>%
-  bind_rows(mutate(summed_EARs_maxGene, method = 'Passive'))
+  bind_rows(mutate(priority_genes, method = 'Passive'))
 
 gene_rank_combine <- gene_combine %>%
   group_by(geneSymbol, order) %>%
-  summarize(sum_ear_median = median(sum_ear_endpoint, na.rm=T)) %>%
-  arrange(desc(order), sum_ear_median)
+  summarize(max_ear_gene  = median(max_ear_gene , na.rm=T)) %>%
+  arrange(desc(order), max_ear_gene)
 
 gene_combine <- gene_combine %>%
   mutate(geneSymbol = factor(geneSymbol, gene_rank_combine$geneSymbol),
@@ -519,7 +578,7 @@ gene_combine <- gene_combine %>%
 
 
 
-top_mixgene_box_twomethod <- ggplot(gene_combine, aes(y=geneSymbol, x=sum_ear_endpoint)) +
+top_mixgene_box_twomethod <- ggplot(gene_combine, aes(y=geneSymbol, x=max_ear_gene)) +
   geom_vline(xintercept=0.001, linetype='dashed') +
   scale_fill_manual(values = c('red', 'blue')) + 
   scale_color_manual(values = c('red', 'blue')) + 
