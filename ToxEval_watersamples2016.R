@@ -104,4 +104,40 @@ chemicalSummary_bench_surface <- tox_bench_list_surface$chem_site %>%
 chemicalSummary_bench_surface$site[which(chemicalSummary_bench_surface$site=='04157000')] <- "04157005"
 
 
+table_SI3 <- bind_rows(chemicalSummary[,c("chnm", "endPoint")], 
+                       chemicalSummary_surface[,c("chnm", "endPoint")]) %>%
+  mutate(source = gsub("_.*", "", endPoint)) %>%
+  select(endPoint, source) %>%
+  distinct() %>%
+  left_join(select(end_point_info, assay_component_endpoint_name, intended_target_gene_symbol),
+            by = c("endPoint" = "assay_component_endpoint_name")) %>%
+  mutate(intended_target_gene_symbol = toupper(intended_target_gene_symbol)) %>%
+  select(ToxCast_assay_source = source,
+         ToxCast_assay_endpoint = endPoint,
+         ToxCast_assay_endpoint_geneSymbol = intended_target_gene_symbol)
+
+table_SI3
+unique(table_SI3$ToxCast_assay_endpoint_geneSymbol)
+            
+table_SI3$ToxCast_assay_endpoint_geneSymbol[which(table_SI3$ToxCast_assay_endpoint_geneSymbol == "CYP3A23/3A1")] <- "CYP3A23|CYP3A1"
+
+table_SI3$ToxCast_assay_endpoint_geneSymbol[which(table_SI3$ToxCast_assay_endpoint_geneSymbol == "THRA|THRB|THRB|THRB |THRA")] <- "THRA|THRB"
+
+unique(table_SI3$ToxCast_assay_endpoint_geneSymbol)
+
+strsplit(table_SI3$ToxCast_assay_endpoint_geneSymbol, "\\|")
+
+table_SI3 <- table_SI3 %>%
+mutate(all_genes = c(strsplit(ToxCast_assay_endpoint_geneSymbol, split = "\\|")),
+       all_genes = sapply(all_genes, function(x) x[!(x %in% "")]),
+       all_genes = sapply(all_genes, function(x) paste(unique(x), collapse = "|")),
+       ToxCast_assay_endpoint_geneSymbol = ifelse(all_genes == "NA", "", all_genes)) %>% 
+  select(-all_genes) %>%
+  arrange(ToxCast_assay_endpoint)
+  
+table_SI3 
+
+write.csv(table_SI3, file.path(path_to_data, "SI tables", "endPoints_included_SI3.csv"), 
+          row.names = F)
+
 
