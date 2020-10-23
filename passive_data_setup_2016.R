@@ -277,5 +277,44 @@ POCIS_mdl <- WW_2016 %>%
   select(chnm, MDL, CAS, Class) %>%
   distinct()
 
+#Calculate percent diff for replicate
+SaginawSummary <- WW_2016_forGLRIDB %>%
+  filter(SiteID == "04157005") %>%
+  group_by(chnm) %>%
+  summarize(across(Value, .fns = list(mean = mean, min = min, max = max, sd = sd), na.rm = TRUE)) %>%
+  mutate(Value_diff = Value_max - Value_min,
+         Value_perdiff = Value_diff/Value_mean*100,
+         onedetect = ifelse(Value_mean*1000 > 0 & Value_min*1000 == 0, "yes", "no"))
+
+summary(filter(SaginawSummary, Value_min != 0))
+data.frame(filter(SaginawSummary, Value_min >0 ))
+
+table_SI2 <- WW_2016_forToxEval %>%
+  filter(Value > 0) %>%
+  group_by(CAS, chnm) %>%
+  summarize(across(Value, .fns = list(min = min, max = max, 
+                                      median = median, mean = mean, 
+                                      n_detects = length)),
+            .groups = "drop") %>%
+  full_join(unique(select(ungroup(WW_2016_forToxEval), chnm, CAS))) %>%
+  left_join(dplyr::select(cas_df, Class, CAS)) %>%
+  mutate(Class = factor(Class, c("Herbicide", "Fungicide", "Insecticide", "Deg - Herbicide", "Deg - Fungicide", "Deg - Insecticide"))) %>%
+  arrange(Class, desc(Value_n_detects, Value_mean))
+
+names(table_SI2) <- gsub("Value_", "", names(table_SI2))
+
+table_SI2 <- table_SI2 %>%
+  mutate(chnm2 = tolower(chnm)) %>%
+  full_join(POCIS_uptake_rates, by = c("chnm2")) %>%
+  select(-chnm2) %>%
+  select(class = Class, chemical_name = chnm, CAS, Rs, min_value = min,
+         max_value = max, median_value = median, mean_value = mean,
+         detects = n_detects) %>%
+  mutate(detects = ifelse(is.na(detects), 0, detects),
+         CAS = paste0("'", CAS))
+
+write.csv(table_SI2, file.path(path_to_data, "SI tables", "chemical_summary_SI2.csv"), 
+          row.names = F)
+
 rm(WW_2016_forToxEval, WW_2016, AllPOCIS_forToxEval, locations, exclude, cas_df, benchmarks_df)
 
