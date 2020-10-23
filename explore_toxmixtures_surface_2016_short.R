@@ -92,6 +92,11 @@ genesummary_surf <- gene_summary(genefunctions_surf)
 
 #Calculate EARmix for each sample and endpoint (note includes all EARs)
 EARmix_surf <- EAR_mixtures(cs_surf, group_by_this)
+AOPmix_surf <- EAR_mixtures(cs_surf, "AOP")
+
+
+EARmix_surf$geneSymbol[grepl("Tanguay_ZF", EARmix_surf$endPoint)] <- "Zebrafish*"
+EARmix_surf$geneSymbol[grepl("TOX21_DT40", EARmix_surf$endPoint)] <- "Cytotoxicity*"
 
 #Add site information and grouping variables
 EARmix_surf <- EARmix_surf %>% 
@@ -106,8 +111,8 @@ EARsite_surf <- site_mixtures(EARmix_surf, ear_cutoff = 0.01) %>%
 data.frame(EARsite_surf)
 
 #plotting
-surf_gene_fig <- plot_genebar(EARmix_surf, ear_cutoff = 0.01, 
-                              site_threshold, type="gene", 
+surf_gene_fig <- plot_genebar(EARmix_surf, ear_cutoff = 0.001, 
+                              site_threshold, type="geneSymbol", 
                               facet_col = "LU", fill = LU) + 
   theme(legend.position = "none") +
   scale_x_log10nice(name = expression(paste("max ", EAR[mixture], " by site")))
@@ -129,6 +134,34 @@ ggsave(file.path(path_to_data, "Figures", "SurfaceEndpointByLanduse.png"),
 
 
 
-       ggsave(file_out(file.path(path_to_data, "Figures/StackBox_EARBySite_watersamples_allyear.png")),
-       
+#plotting
+ear_threshold <- .01 #Ear threshold
+
+box_gene_surf <- plot_genebar(EARmix_surf, ear_threshold, site_threshold, type="geneSymbol", fill = 'nothing') +
+  scale_fill_manual(values = c("darkgreen")) + 
+  scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
+  theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  ggtitle("ToxCast gene target")
+
+box_endpoint_surf <- plot_genebar(EARmix_surf, ear_threshold, site_threshold, type="endPoint", fill = 'nothing') +
+  scale_fill_manual(values = c("darkred")) + 
+  scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
+  theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  ggtitle("ToxCast assay name")
+
+box_AOP_surf <- plot_genebar(AOPmix_surf, ear_threshold, site_threshold, type="AOP", fill = 'nothing') +
+  scale_fill_manual(values = c("darkblue")) + 
+  scale_x_log10nice(name = expression(paste(EAR[AOP]))) +
+  theme(legend.position = 'none',
+        axis.title.y = element_blank()) +
+  ggtitle("AOP wiki #")
+
+png(file.path(path_to_data, "Figures", "PriorityBoxplot_surface_3panel_v2.png"), height = 4, width = 9, units = "in", res = 300)
+grid.newpage()
+boxes_surf <- grid.draw(cbind(ggplotGrob(box_endpoint_surf),
+                              ggplotGrob(box_gene_surf), 
+                              ggplotGrob(box_AOP_surf)))
+dev.off()
        
