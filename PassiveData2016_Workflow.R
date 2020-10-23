@@ -63,5 +63,8 @@ source('ToxEval_watersamples2016.R')
 #Combine water and passive samples and compare. 
 # source('Compare_Plot_Passive_V_WaterSample.R')
 
-#Initial script to analyze mixtures
-source('explore_toxmixtures_passive_2016.R')
+#Script to analyze and plot mixtures passive
+source('explore_toxmixtures_passive_2016_short.R')
+
+#Script to analyze and plot mixtures surface water samples
+source('explore_toxmixtures_surface_2016_short.R')

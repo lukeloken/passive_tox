@@ -93,6 +93,10 @@ gene_outpass <- full_join(gene_mixespass, gene_summarypass,
 write.csv(gene_outpass, file = file_out(file.path(path_to_data, 'Data', 'PassiveGeneMixtures_Table2.csv')), row.names = F)
 
 
+gene_wb <- create_Excel_wb_gene(gene_summarypass, gene_mixespass)
+
+saveWorkbook(gene_wb, file = file.path(path_to_data, "Data", "Gene_Workbook_passive.xlsx"), overwrite = TRUE)
+
 # priority endpoints
 priorityEndpoints <- filter(cs_pass, EAR>0.001) %>%
   dplyr::select(chnm, endPoint) %>%
