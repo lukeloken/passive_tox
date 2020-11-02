@@ -43,8 +43,13 @@ chemicalSummary <- tox_list$chem_site %>%
 chemicalSummary$Class[is.na(chemicalSummary$Class)] <- tox_list$chem_info$Class[match(chemicalSummary$CAS[is.na(chemicalSummary$Class)], tox_list$chem_info$CAS)]
 
 #Site order for plotting
-site_order <- unique(chemicalSummary$shortName)
-site_ID_order <- unique(chemicalSummary$site)
+site_order <- c("St. Louis", "Bad", 
+                "Fox", "Milwaukee", "Indiana Harbor", 
+                "St. Joseph", "Grand", "Saginaw", 
+                "Clinton", "Rouge", "Maumee",
+                "Vermilion", "Cuyahoga", "Genesee", "Oswego")
+
+site_ID_order <- tox_list$chem_site$SiteID[match(site_order, tox_list$chem_site$`Short Name`)]
 
 conc_table <- tox_list$chem_data %>%
   filter(Value > 0)
