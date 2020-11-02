@@ -14,15 +14,36 @@ library(ggplot2)
 library(grid)
 library(openxlsx)
 
+source("custm_plot_tox_stacks.R")
 
+
+tox_file_exclusions <- read_excel(file.path(path_to_data, 
+                                     "ToxEvalFiles",
+                                     "USGS_Water_data_synthesis 1 with exclusions.xlsx"), 
+                                  sheet = "Exclude")
 tox_file <- create_toxEval(file.path(path_to_data, 
                                      "ToxEvalFiles",
-                                     "USGS_Water_data_synthesis 1 with exclusions.xlsx"))
+                                     "data_synthesis_TOXEVAL.xlsx"))
+
+cs_test <- get_chemical_summary(tox_file, 
+                                 ACClong, 
+                                 filtered_ep)
+
+# Atrazine_Milwaukee_out <- cs_test %>%
+#   filter(chnm == "Atrazine" & site == "04087000" & date == as.Date("2017-06-10"))
+# head(Atrazine_Milwaukee_out, 10)
+# 
+# Atrazine_Milwaukee_in <- tox_file$chem_data %>%
+#   filter(CAS == "1912-24-9" & SiteID == "04087000" & `Sample Date` == as.Date("2017-06-10"))
+# head(Atrazine_Milwaukee_in)
+
+tox_file$exclusions <- tox_file_exclusions
 
 #Add some grouping factors
 tox_file$chem_site <- tox_file$chem_site %>%
   mutate(State = factor(State, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY')),
-         Lake  = factor(Lake, c('Superior', 'Michigan', 'Huron', 'Erie', 'Ontario')))
+         Lake  = factor(site_grouping, c('Superior', 'Michigan', 'Huron', 'Erie', 'Ontario')),
+         site_grouping = factor(site_grouping, c('Superior', 'Michigan', 'Huron', 'Erie', 'Ontario')))
 
 class_table <- table(tox_file$chem_info$Class) 
 study_table <- table(tox_file$chem_info$type) 
@@ -38,15 +59,19 @@ tox_file_max$chem_info <- tox_file_max$chem_info %>%
   summarize(across(c(`Chemical Name`, Class), function (x) x[x != "" & !is.na(x)][1]), 
             .groups = "drop")
 
+tox_file_max$chem_info$Class[which(tox_file_max$chem_info$CAS == "80-05-7")] <- "Plasticizers" 
+tox_file_max$chem_info$Class[which(tox_file_max$chem_info$CAS == "77-93-0")] <- "Plasticizers" 
+
+
 tox_file_max$chem_data <- tox_file_max$chem_data %>%
   filter(type %in% c("Passive", "Water"),
          !is.na(Value)) %>%
-  mutate(Value_new = ifelse(files %in% c("Phase2_Pharm.xlsx", 
-                                          "Phase2_Pesticides.xlsx"), 
-                            Value/1000,
-                            Value)) %>%
+  # mutate(Value_new = ifelse(files %in% c("Phase2_Pharm.xlsx", 
+  #                                         "Phase2_Pesticides.xlsx"), 
+  #                           Value/1000,
+  #                           Value)) %>%
   group_by(SiteID, CAS) %>%
-  summarize(Value = max(Value_new),
+  summarize(Value = max(Value),
             `Sample Start Date` = min(`Sample Date`),
             `Sample End Date` = max(`Sample Date`),
             .groups = "drop") %>%
@@ -64,6 +89,12 @@ filtered_ep <- filter_groups(cleaned_ep,
 cs_synth <- get_chemical_summary(tox_file_max, 
                                  ACClong, 
                                  filtered_ep)
+
+cs_synth$chnm <- as.character(cs_synth$chnm)
+cs_synth$chnm[which(cs_synth$CAS == "77-93-0")] <- "Triethyl citrate"
+cs_synth$chnm[which(cs_synth$CAS == "140-66-9")] <- "4-tert-Octylphenol"
+
+cs_synth$chnm[grepl("21145-77-7", cs_synth$CAS)] <- "Tonalid"
 
 #Check to ensure exclusions are excluded
 
@@ -95,7 +126,7 @@ cs_summary <- cs_synth %>%
             n_exceed2 = length(which(EAR > 0.01)),
             MaxEAR = max(EAR)) %>%
   arrange(desc(n_exceed), desc(n_exceed2), desc(n), desc(MaxEAR), chnm)  %>%
-  filter(n_exceed > 1 | n_exceed2 > 10 | n > 25)
+  filter(n_exceed > 1 | n_exceed2 > 2 | n > 40)
 
 cs_plot <- cs_synth %>%
   filter(EAR > 0) %>%
@@ -103,29 +134,35 @@ cs_plot <- cs_synth %>%
   mutate(chnm = factor(chnm, rev(cs_summary$chnm))) %>%
   mutate(Class2 = case_when(grepl("icide", Class) ~ "Pesticides",
                             Class == "PAHs" ~ "PAHs",
-                            Class == "Solvent" ~ "Other (some are pharms)",
-                            Class == "Flavor/Fragrance" ~ "Other (some are pharms)",
-                            Class == "Food Additive/Plasticizer" ~ "Other (some are pharms)",
-                            Class == "Dye/Pigment" ~ "Other (some are pharms)",
-                            Class == "Fire retardant" ~ "Other (some are pharms)",
-                            Class == "Antioxidants" ~ "Other (some are pharms)",
-                            Class == "Other" ~ "Other (some are pharms)",
-                            Class == "Pharmaceuticals" ~ "Pharmaceuticals"))
-  
+                            Class == "Solvent" ~ "Solvent",
+                            Class == "Flavor/Fragrance" ~ "Other",
+                            Class == "Food Additive/Plasticizer" ~ "Plasticizers",
+                            Class == "Dye/Pigment" ~ "Dye/Pigment",
+                            Class == "Fire retardant" ~ "Fire retar.",
+                            Class == "Fire retardants" ~ "Fire retar.",
+                            Class == "Antioxidants" ~ "Other",
+                            Class == "Other" ~ "Other",
+                            Class == "Pharmaceuticals" ~ "Pharmaceuticals",
+                            Class == "Cardiovascular Care" ~ "Pharmaceuticals",
+                            Class == "OTC-Chronic Condition" ~ "Pharmaceuticals",
+                            Class == "Plasticizers" ~ "Plasticizers"))
 
-cs_plot$Class2[which(is.na(cs_plot$Class2))] <- "Other (some are pharms)"
+  
+cs_plot$Class2[which(is.na(cs_plot$chnm))] <- "Other"
+
+cs_plot$Class2[which(is.na(cs_plot$Class2))] <- "Other"
 
 cs_plot <- cs_plot %>%
   mutate(Class2 = factor(Class2, c("Pesticides", "Pharmaceuticals",
-                                 "PAHs", "Other (some are pharms)")))
+                                 "PAHs", "Fire retar.", "Plasticizers", "Other")))
 
-Atrazine_test <- cs_plot %>%
-  filter(chnm == "Atrazine" & site == "04024000")
-
-Atrazine_raw <- tox_file$chem_data %>%
-  filter(CAS == "1912-24-9", SiteID  == "04024000")
-
-summary(data.frame(Atrazine_test))
+# Atrazine_test <- cs_plot %>%
+#   filter(chnm == "Atrazine" & site == "04024000")
+# 
+# Atrazine_raw <- tox_file$chem_data %>%
+#   filter(CAS == "1912-24-9", SiteID  == "04024000")
+# 
+# summary(data.frame(Atrazine_test))
 
 
 #Check to ensure exclusions are excluded
@@ -148,7 +185,8 @@ synthesis_chnm_stackbar <- plot_stackbar(cs_plot, x = "chnm", stack = "site",
        fill = expression(paste("max ",EAR[chem]))) + 
   scale_y_continuous(expand = c(0,0,0,1)) +
   theme(strip.background = element_rect(fill = NA, color = NA), axis.ticks.y = element_blank()) + 
-  theme(legend.position = c(0.98, 0.15), legend.justification = "right") +
+  theme(legend.position = c(0.98, 0.1), legend.justification = "right") + 
+        # panel.border = element_rect(colour = NA), strip.text = element_text()) +
   coord_flip()
 
 print(synthesis_chnm_stackbar)
@@ -179,6 +217,17 @@ ggsave(file.path(path_to_data, "Figures", "Synthesis_site_Stackbar.png"),
        synthesis_site_stackbar, height = 9, width = 5)
 
 
+
+horizonal_plot <- custom_plot_tox_stacks(cs_synth, tox_file_max$chem_site, "Chemical", 
+                                         include_legend = FALSE, y_label = "EAR", font_size = 8) 
+ggsave(horizonal_plot, filename = file.path(path_to_data, "Figures", "Synthesis_horizontal.png"), height = 5, width = 11)
+
+vertical_plot <- custom_plot_tox_stacks_flipped(cs_synth, tox_file_max$chem_site, "Chemical", 
+                                                include_legend = FALSE, y_label = "EAR", font_size = 8) 
+# ggsave(vertical_plot, filename = "vertical.png", height = 10, width = 5)
+
+
+
 # #################
 # Mixtures analysis
 # #################
@@ -187,7 +236,7 @@ ggsave(file.path(path_to_data, "Figures", "Synthesis_site_Stackbar.png"),
 
 # thresholds for mixtures analysis
 group_by_this <- "endPoint"
-ear_threshold <- 1 #Ear threshold
+ear_threshold <- 0.01 #Ear threshold
 site_threshold <- length(unique(tox_file_max$chem_data$SiteID))/10 #How many sites
 
 
@@ -217,8 +266,14 @@ topcombos <- top_mixes(cs_synth, group_by_this,
                        ear_threshold,
                        site_threshold) 
 
-
 topmixtures <- overall_mixtures(topcombos, "max")
+
+allmixtures <- overall_mixtures(topcombos, "all") %>%
+  left_join(select(topcombos, endPoint, chems, n_samples, n_sites))
+
+write.csv(allmixtures, file = file.path(path_to_data, 'Data', 
+                                     'SynthesisTopChemicalMixtures_Table3.csv'), 
+          row.names = F)
 
 
 topaopcombos <- top_mixes(cs_synth, 
@@ -246,13 +301,13 @@ gene_summary <- gene_summary(genefunction)
 gene_mixes <- gene_mixtures(topmixtures) %>%
   filter(geneSymbol != "")
 
-gene_out <- full_join(gene_mixes, gene_summary, 
-                      by = "geneSymbol")
-
-
-write.csv(gene_out, file = file.path(path_to_data, 'Data', 
-                                     'SynthesisGeneMixtures_Table2.csv'), 
-          row.names = F)
+# gene_out <- full_join(gene_mixes, gene_summary, 
+#                       by = "geneSymbol")
+# 
+# 
+# write.csv(gene_out, file = file.path(path_to_data, 'Data', 
+#                                      'SynthesisGeneMixtures_Table2.csv'), 
+#           row.names = F)
 
 
 gene_wb <- create_Excel_wb_gene(gene_summary, gene_mixes)
@@ -298,17 +353,20 @@ EAR_mix$geneSymbol[is.na(EAR_mix$geneSymbol)] <-
 box_gene <- plot_genebar(EAR_mix, ear_threshold, site_threshold, type="geneSymbol", fill = "date") +
   scale_fill_manual(values = c("darkgreen")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
-  theme(legend.position = 'none')
+  theme(legend.position = 'none', axis.title.y = element_blank()) +
+  ggtitle("Gene symbol")
 
 box_endpoint <- plot_genebar(EAR_mix, ear_threshold, site_threshold, type="endPoint", fill = 'date') +
   scale_fill_manual(values = c("darkred")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
-  theme(legend.position = 'none')
+  theme(legend.position = 'none', axis.title.y = element_blank()) +
+  ggtitle("ToxCast assay")
 
 box_AOP <- plot_genebar(AOP_mix, ear_threshold, site_threshold, type="AOP", fill = 'date') +
   scale_fill_manual(values = c("darkblue")) + 
   scale_x_log10nice(name = expression(paste(EAR[AOP]))) +
-  theme(legend.position = 'none')
+  theme(legend.position = 'none', axis.title.y = element_blank()) +
+  ggtitle("AOP wiki #")
 
 png(file.path(path_to_data, "Figures", "Synthesis_PriorityBoxplot_3panel_v2.png"), height = 8, width = 12, units = "in", res = 300)
 grid.newpage()
@@ -339,29 +397,34 @@ AOP_mix_sub <- cs_synth %>%
 
 
 #plotting
-box_gene_sub <- plot_genebar(EAR_mix_sub, ear_cutoff = 0.1, site_threshold, type="geneSymbol", fill = "group") +
+box_gene_sub <- plot_genebar(EAR_mix_sub, ear_cutoff = 0.01, site_thres = 0.9, type="geneSymbol", fill = "group") +
   scale_fill_manual(values = c("darkblue", "darkred", "grey")) +
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none', axis.title.y = element_blank()) +
   ggtitle("Gene symbol")
 
-box_endpoint_sub <- plot_genebar(EAR_mix_sub, ear_cutoff = 0.1, site_threshold, type="endPoint", fill = 'group') +
+box_endpoint_sub <- plot_genebar(EAR_mix_sub, ear_cutoff = 0.01, site_thres = 0.9, type="endPoint", fill = 'group') +
   scale_fill_manual(values = c("darkblue", "darkred", "grey")) +
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none', axis.title.y = element_blank()) +
   ggtitle("ToxCast Assay")
 
-box_AOP_sub <- plot_genebar(AOP_mix_sub, ear_cutoff = 0.1, site_threshold, type="AOP", fill = 'group') +
+box_AOP_sub <- plot_genebar(AOP_mix_sub, ear_cutoff = 0.01, site_thres = 0.9, type="AOP", fill = 'group') +
   scale_fill_manual(values = c("darkblue", "darkred", "grey")) +
   scale_x_log10nice(name = expression(paste(EAR[AOP]))) +
   theme(legend.position = 'none', axis.title.y = element_blank()) +
   ggtitle("AOP-wiki#")
 
-png(file.path(path_to_data, "Figures", "Synthesis_AR_PriorityBoxplot_3panel_v2.png"), height = 4, width = 9, units = "in", res = 300)
+png(file.path(path_to_data, "Figures", "Synthesis_AR_PriorityBoxplot_3panel_v2.png"), height = 6, width = 12, units = "in", res = 300)
 grid.newpage()
 boxes <- grid.draw(cbind(ggplotGrob(box_endpoint_sub), 
                          ggplotGrob(box_gene_sub), 
                          ggplotGrob(box_AOP_sub)))
 dev.off()
 
+
+
+
+
+#Map figure
 
