@@ -29,7 +29,7 @@ library(gridExtra)
 
 #load custom functions
 source('R/functions/g_legend.R')
-source('R/functions/ScaleYLog10Nice.R')
+# source('R/functions/ScaleYLog10Nice.R')
 
 
 #Load passive sampler data and generate toxEval file
