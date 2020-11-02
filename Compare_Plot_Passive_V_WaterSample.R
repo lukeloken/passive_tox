@@ -11,7 +11,21 @@ chemicalSummary_bench # Select data using custom benchmarks
 chemicalSummary_surface #Sam's data from surface
 chemicalSummary_bench_surface # Sam's surface data using custom benchmarks
 
-
+# expanded_df <- expand(tox_list_surface$chem_data, nesting(SiteID, `Sample Date`)) %>%
+#   merge(select(tox_list_surface$chem_info, CAS)) %>%
+#   rename(date = `Sample Date`,
+#          site = SiteID) %>%
+#   left_join(unique(select(chemicalSummary_surface, site, shortName, dec_lat, dec_lon, Lake, site_grouping)), 
+#             by = "site") %>%
+#   left_join(unique(select(tox_list_surface$chem_info, CAS, chnm = compound, Class)), by = "CAS") 
+# 
+# 
+# chemicalSummary_surface <- chemicalSummary_surface %>%
+#   full_join(expanded_df) %>%
+#   group_by(site) %>%
+#   mutate(EAR = ifelse(is.na(EAR), 0, EAR))
+#   # mutate(across(.cols = c("shortName", "Lake", "site_grouping"),
+#                 # ~unique(.x)[!is.na(unique(.x))][1]))
 
 chemicalSummary_surface_annual <- chemicalSummary_surface %>%
   # filter(EAR>0) %>%
@@ -82,6 +96,8 @@ chemicalSummary_surface_prepped_spread <- chemicalSummary_surface_prepped %>%
 
 #Spread each table before joining
 chemicalSummary_merged <- full_join(chemicalSummary_surface_prepped_spread, chemicalSummary_passive_prepped_spread) 
+chemicalSummary_merged$WaterDetected[is.na(chemicalSummary_merged$surface)] <- "belowMDL"
+chemicalSummary_merged$surface[is.na(chemicalSummary_merged$surface)] <- 0
 
 chemicalSummary_merged$shortName = site_order[match(chemicalSummary_merged$site, site_ID_order)]
 
@@ -93,6 +109,8 @@ chemicalSummary_merged$Detected[AnyMDL] <- "belowMDL"
 # chemicalSummary_merged$Detected = "Detected"
 # chemicalSummary_merged$Detected[which(chemicalSummary_merged$passive==10^-7 | chemicalSummary_merged$water==10^-7)] <- 'belowMDL'
 
+chemicalSummary_merged$chnm <- as.character(chemicalSummary_merged$chnm)
+
 chemicalSummary_merged$Class[which(chemicalSummary_merged$chnm %in% c("Dichlorvos"))] <- "Insecticide"
 
 chemicalSummary_merged$chnm[which(chemicalSummary_merged$Class %in% c("Deg - Fungicide", "Deg - Herbicide", "Deg - Insecticide"))] <- 
@@ -103,7 +121,8 @@ chemicalSummary_merged <- chemicalSummary_merged %>%
   group_by() %>%
   mutate(Class = factor(Class, c('Herbicide', 'Fungicide', 'Insecticide')),
          chnm = factor(chnm, chemorder1)) %>%
-  drop_na(chnm) 
+  drop_na(chnm) %>%
+  filter(chnm != "Tebupirimfos")
 
 good_chems <-   chemicalSummary_merged %>%
   group_by(site, chnm) %>%
@@ -193,12 +212,13 @@ Scatterplot_passive_versus_water <- ggplot(chemicalSummary_merged, aes(x=passive
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         legend.position='bottom', legend.title = element_blank(), 
         axis.text=element_text(size=6), 
-        strip.text.x = element_text(size = 8, margin = margin(.1,0,.1,0, "cm"))) +
+        strip.text.x = element_text(size = 6, margin = margin(.1,0,.1,0, "cm"), hjust = 0),
+        strip.background = element_rect(fill = NA, color = NA)) +
   guides(color = guide_legend(override.aes = list(alpha = 1)))
 
 print(Scatterplot_passive_versus_water)
 
-ggsave(file_out(file.path(path_to_data, "Figures/Scatterplot_EAR_Passive_V_WaterSample.png")), Scatterplot_passive_versus_water, height=7, width=8, units='in')
+ggsave(file_out(file.path(path_to_data, "Figures/Scatterplot_EAR_Passive_V_WaterSample.png")), Scatterplot_passive_versus_water, height=9, width=5.5, units='in')
 
 
 
