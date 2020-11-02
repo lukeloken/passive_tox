@@ -12,6 +12,25 @@ date_filter <- as.Date(c("2016-06-01", "2016-07-21")) #Passive deploy dates
 tox_list_surface <- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/WQ_pesticides.xlsx")))
 # tox_list_surface$chem_site$site_grouping <- factor(tox_list_surface$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
 
+SW_sampledates <- read.csv(file.path(path_to_data, "Data", "sw_pesticides_all_samples.csv")) %>%
+  mutate(sample_dt = as.Date(sample_dt),
+         SiteID = paste0("0", as.character(SiteID))) %>%
+  distinct() %>%
+  rename(`Sample Date` = sample_dt)
+
+tox_list_surface$chem_data <- SW_sampledates %>%
+  merge(select(tox_list_surface$chem_info, CAS, pCode)) %>%
+  arrange(SiteID, `Sample Date`) %>%
+  left_join(tox_list_surface$chem_data) %>%
+  mutate(remark_cd = ifelse(is.na(Value), paste(remark_cd, "<", sep = " "), remark_cd),
+         Value = ifelse(is.na(Value), 0, Value)) 
+
+test <- tox_list_surface$chem_data %>%
+  select(SiteID, `Sample Date`) %>%
+  distinct()
+
+table(test$SiteID)
+
 #passive tox_list
 tox_list_passive<- create_toxEval(file_in(file.path(path_to_data, "ToxEvalFiles/Passive2016_ToxEval.xlsx")))
 tox_list_passive$chem_site$site_grouping <- factor(tox_list_passive$chem_site$site_grouping, c('MN', 'WI', 'IL', 'IN', 'MI', 'OH', 'NY'))
