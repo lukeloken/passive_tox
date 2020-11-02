@@ -201,9 +201,9 @@ cas_df_surf <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.x
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
 
 
-exclude = get_exclude(file.path(path_to_data, "Data/exclude32.csv")) %>%
-# exclude = get_exclude(file.path(path_to_data, "Data/exclude.csv")) %>%
-  dplyr::select(-chnm)
+  exclude <- read.csv(file.path(path_to_data, "Data/exclude32.csv"), stringsAsFactors = FALSE) %>%
+   left_join(select(toxEval::tox_chemicals, CAS=Substance_CASRN, chnm=Substance_Name), by = "CAS") %>%
+   select(CAS, endPoint)
 
 if (any(grepl("\\?", exclude$CAS))){
   stop('One of the exclusions CAS contains a "?". Check exclusions spreadsheet.')
