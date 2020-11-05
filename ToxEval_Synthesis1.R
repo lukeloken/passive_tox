@@ -395,6 +395,28 @@ AOP_mix_sub <- cs_synth %>%
   mutate(group = factor(group, c("AR", "ESR")))
 
 
+unique(filter(EAR_mix_sub, EARsum>0.01 & geneSymbol == "AR")$chems)
+
+all_chem_ER <- (filter(EAR_mix_sub, EARsum>0.01 & geneSymbol %in% c("ESR2", "ESR1"))$chems)
+all_chem_AR <- (filter(EAR_mix_sub, EARsum>0.01 & geneSymbol %in% c("AR"))$chems)
+
+
+all_chems_ER_tally <- (unlist(strsplit(paste(all_chem_ER, collapse = "|"), "\\|")))
+all_chems_AR_tally <- (unlist(strsplit(paste(all_chem_AR, collapse = "|"), "\\|")))
+
+
+all_chem_combos <- filter(EAR_mix_sub, EARsum>0.01 & geneSymbol %in% c("AR", "ESR2", "ESR1")) %>%
+  group_by(site, geneSymbol) %>% 
+  summarize(chem_list = paste(chems, collapse = "|")) %>%
+  group_by(site, geneSymbol) %>%
+  mutate(chem_list = paste(unique(unlist(strsplit(chem_list, "\\|"))), collapse = "|")) %>%
+  separate_rows(chem_list, sep = "\\|") %>%
+  group_by(geneSymbol, chem_list) %>%
+  tally() %>%
+  arrange(geneSymbol, desc(n), chem_list)
+
+table(all_chems_AR_tally)
+table(all_chems_ER_tally)
 
 #plotting
 box_gene_sub <- plot_genebar(EAR_mix_sub, ear_cutoff = 0.01, site_thres = 0.9, type="geneSymbol", fill = "group") +
