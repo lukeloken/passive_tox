@@ -14,6 +14,9 @@ library(raster)
 library(sp)
 library(rgdal)
 library(sf)
+library(dataRetrieval)
+
+
 
 #Watersheds
 # basinPath <- "M:/QW Monitoring Team/GLRI_GIS/layers/20131299_GLRI_MASTER/~old/201401_HUC12Basins"
@@ -26,10 +29,14 @@ library(sf)
 # basins = st_read(basinPath, 'PesticideBasins')
 # basins <- filter(basins, STAID %in% sites$site_no)
 
+basins_OGR <- readRDS( file_in(file.path(path_to_data, "Rdata/watershedmetrics.rds")))
+
+
 #nlcd
 big_nlcd_GL = get_nlcd(template=GL, label="GL")
 # big_nlcd = get_nlcd(template=basins_OGR, label="basins", year='2011')
 big_nlcd_2016 = get_nlcd(template=basins_OGR, label="basins", year='2016')
+
 
 # NLCDpath <- c('O:/BaseData/National/LandCover/NLCD16_2019Version/nlcd16lc.ovr')
 # big_nlcd = raster(NLCDpath)
@@ -37,6 +44,19 @@ big_nlcd_2016 = get_nlcd(template=basins_OGR, label="basins", year='2016')
 # big_nlcd<-spTransform(big_nlcd,  crs(big_nlcd))
 
 basins_OGR <-spTransform(basins_OGR, crs(big_nlcd))
+
+
+
+
+rawDailyData <- readNWISdv(basins_OGR$STAID, parameterCd = "00060",
+                           "2009-10-01","2019-09-30")
+
+flow_summary <- rawDailyData %>%
+  group_by(site_no) %>%
+  summarize(mean_flow = mean(X_00060_00003, na.rm = TRUE),
+            start_date = min(Date, na.rm = TRUE),
+            end_date = max(Date, na.rm = TRUE),
+            days = n())
 
 #States
 state_names <- c("minnesota","wisconsin", "michigan","ohio",
