@@ -58,6 +58,15 @@ topcombos_pass <- top_mixes(cs_pass, group_by_this,
                             ear_threshold,
                             site_threshold) 
 
+allcombos_pass <- top_mixes(cs_pass, group_by_this, 
+                            ear_threshold,
+                            site_thres = 0.1) 
+
+allmixtures_pass <- overall_mixtures(allcombos_pass, "max")
+
+gene_review_pass <- allmixtures_pass %>%
+  select(endPoint, genes, everything(), -AOP_titles, -AOP_names, -pathways) %>%
+  mutate(project = "Passive Pesticides")
 
 topmixtures_pass <- overall_mixtures(topcombos_pass, "max")
 
@@ -121,17 +130,17 @@ priorityGenes <- priorityEndpoints %>%
 
 #plotting
 
-box_gene_pass <- plot_genebar(EAR_mix_pass, ear_threshold, site_threshold, type="geneSymbol", fill = 'nothing') +
+box_gene_pass <- plot_genebar(EAR_mix_pass, ear_threshold, site_threshold, type="geneSymbol", fill = "date") +
   scale_fill_manual(values = c("darkgreen")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none')
 
-box_endpoint_pass <- plot_genebar(EAR_mix_pass, ear_threshold, site_threshold, type="endPoint", fill = 'nothing') +
+box_endpoint_pass <- plot_genebar(EAR_mix_pass, ear_threshold, site_threshold, type="endPoint", fill = 'date') +
   scale_fill_manual(values = c("darkred")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none')
 
-box_AOP_pass <- plot_genebar(AOP_mix_pass, ear_threshold, site_threshold, type="AOP", fill = 'nothing') +
+box_AOP_pass <- plot_genebar(AOP_mix_pass, ear_threshold, site_threshold, type="AOP", fill = 'date') +
   scale_fill_manual(values = c("darkblue")) + 
   scale_x_log10nice(name = expression(paste(EAR[AOP]))) +
   theme(legend.position = 'none')
@@ -157,7 +166,7 @@ cs_pass_modified <- cs_pass %>%
 # plot_genebar(cs_pass_modified, ear_threshold, site_threshold, type = "endPoint", facet_col = "chnm")
 
 gene_bychem_boxplot <- plot_genebar(cs_pass_modified, ear_threshold, site_thres = 0.9, 
-                                    type = "geneSymbol", facet_col = "chnm", fill = "nothing") +
+                                    type = "geneSymbol", facet_col = "chnm", fill = "date") +
   scale_x_log10nice(name = expression(paste("EAR"))) +
   theme(legend.position = "none") +
   theme(strip.background = element_rect(fill = NA, color = NA),
@@ -179,6 +188,23 @@ cs_surf <- chemicalSummary_surface %>%
          shortName %in% site_order) %>%
   mutate(shortName = factor(shortName, site_order))
 
+
+allcombos_surf <- top_mixes(chemicalSummary_surface, group_by_this, 
+                            ear_threshold,
+                            site_thres = 0.1) 
+
+allmixtures_surf <- overall_mixtures(allcombos_surf, "max")
+
+gene_review_surf <- allmixtures_surf %>%
+  select(endPoint, genes, everything(), -AOP_titles, -AOP_names, -pathways) %>%
+  mutate(project = "Surface Pesticides") %>%
+  bind_rows(gene_review_pass) %>%
+  arrange(genes, endPoint) %>%
+  group_by(endPoint) %>%
+  left_join(select(end_point_info, endPoint = assay_component_endpoint_name, signal_direction, analysis_direction, assay_component_endpoint_desc)) %>%
+  distinct()
+  
+write.csv(gene_review_surf, file.path(path_to_data, "Data", "endPoint_gene_review_pesticides.csv"), row.names = FALSE)
 
 # Calculate EARMix and EARAOP for each sample and endpoint/AOP
 EAR_mix_surf <- EAR_mixtures(cs_surf, group_by_this)
@@ -238,18 +264,20 @@ write.csv(gene_outsurf, file = file_out(file.path(path_to_data, 'Data', 'Surface
 
 
 #plotting
+EAR_mix_surf$fill_by = "a"
+AOP_mix_surf$fill_by = "a"
 
-box_gene_surf <- plot_genebar(EAR_mix_surf, ear_threshold, site_threshold, type="geneSymbol", fill = 'nothing') +
+box_gene_surf <- plot_genebar(EAR_mix_surf, ear_threshold, site_threshold, type="geneSymbol", fill = "fill_by") +
   scale_fill_manual(values = c("darkgreen")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none')
 
-box_endpoint_surf <- plot_genebar(EAR_mix_surf, ear_threshold, site_threshold, type="endPoint", fill = 'nothing') +
+box_endpoint_surf <- plot_genebar(EAR_mix_surf, ear_threshold, site_threshold, type="endPoint", fill = 'fill_by') +
   scale_fill_manual(values = c("darkred")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none')
 
-box_AOP_surf <- plot_genebar(AOP_mix_surf, ear_threshold, site_threshold, type="AOP", fill = 'nothing') +
+box_AOP_surf <- plot_genebar(AOP_mix_surf, ear_threshold, site_threshold, type="AOP", fill = 'fill_by') +
   scale_fill_manual(values = c("darkblue")) + 
   scale_x_log10nice(name = expression(paste(EAR[AOP]))) +
   theme(legend.position = 'none')
@@ -263,12 +291,13 @@ cs_surf_modified <- cs_surf %>%
   unite(chnm, endPoint, col = "chnm_endPoint", sep = "|", remove = FALSE) %>%
   filter(chnm_endPoint %in% priority_combos_surf$chnm_endPoint) %>%
   rename(EARsum = EAR) %>%
-  left_join(join_criteria())
+  left_join(join_criteria()) %>%
+  mutate(fill_by = "a")
 
 # plot_genebar(cs_pass_modified, ear_threshold, site_threshold, type = "endPoint", facet_col = "chnm")
 
 gene_bychem_boxplot_surf <- plot_genebar(cs_surf_modified, ear_threshold, site_thres = 1.9, 
-                                    type = "geneSymbol", facet_col = "chnm", fill = "nothing") +
+                                    type = "geneSymbol", facet_col = "chnm", fill = "fill_by") +
   scale_x_log10nice(name = expression(paste("EAR"))) +
   theme(legend.position = "none") +
   theme(strip.background = element_rect(fill = NA, color = NA),
@@ -294,7 +323,7 @@ EAR_mix_combined <- EAR_mix_pass %>%
 EAR_mix_combined$geneSymbol[grepl("Tanguay_ZF", EAR_mix_combined$endPoint)] <- "Zebrafish*"
 
 gene_combined_boxplot <- plot_genebar(EAR_mix_combined, ear_threshold, site_threshold, 
-             type="geneSymbol", fill = method, facet_col = "method") +
+             type="geneSymbol", fill = "method", facet_col = "method") +
   # scale_fill_manual(values = c("darkgreen")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture])), expand = c(0.03,0.03)) +
   theme(legend.position = 'none') +
@@ -307,7 +336,7 @@ ggsave(file_out(file.path(path_to_data, "Figures/PriorityGenesBoxplot_twoMethods
 
 
 endPoint_combined_boxplot <- plot_genebar(EAR_mix_combined, ear_threshold, site_threshold, 
-                                      type="endPoint", fill = method, facet_col = "method") +
+                                      type="endPoint", fill = "method", facet_col = "method") +
   # scale_fill_manual(values = c("darkgreen")) + 
   scale_x_log10nice(name = expression(paste(EAR[mixture]))) +
   theme(legend.position = 'none') +
@@ -328,7 +357,7 @@ AOP_mix_combined <- AOP_mix_pass %>%
   bind_rows(AOP_mix_surf)
 
 AOP_combined_boxplot <- plot_genebar(AOP_mix_combined, ear_threshold, site_threshold, 
-                                      type="AOP", fill = method, facet_col = "method") +
+                                      type="AOP", fill = "method", facet_col = "method") +
   # scale_fill_manual(values = c("darkgreen")) + 
   scale_x_log10nice(name = expression(paste(EAR[AOP])), expand = c(0.03,0.03)) +
   theme(legend.position = 'none') +
