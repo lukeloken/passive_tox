@@ -77,6 +77,8 @@ WW_2016 = generic_file_opener(file_in(file.path(path_to_data, "RawData/GLRI 2016
                               year = 2016,
                               skip_site = 2)
 
+WW_2016$Value[which(WW_2016$chnm == "Tebupirimfos")] <- 0
+
 # AllPOCIS_2016 = generic_file_opener(file_in(file.path(path_to_data, "Data/GLRI 2016 POCIS pesticide data report.xlsx")), cas_df, 
                               # sheet = "all data",
                               # n_max=300,
@@ -148,7 +150,8 @@ POCIS_uptake_rates$chnm2[grepl("desamino metribuzin", POCIS_uptake_rates$chnm2)]
 # t time (d)
 
 new_POCIS <- AllPOCIS_2016 %>%
-  mutate(chnm2 = tolower(chnm)) %>%
+  mutate(chnm2 = tolower(chnm),
+         MDL = NA) %>%
   left_join(POCIS_uptake_rates, by = "chnm2") %>%
   filter(!is.na(Rs)) %>%
   left_join(select(ungroup(sites_2016), SiteID, Datetime_in, Datetime_out), by = "SiteID") %>%
@@ -198,6 +201,11 @@ surface_mdl <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.x
 
 cas_df_surf <- read_excel(file_in(file.path(path_to_data, 'Data/pesticides_dls.xlsx')), sheet='Chemicals')
 
+head(cas_df)
+head(cas_df_surf)
+
+# cas_df2 <- cas_df_surf %>%
+#   filter(CAS %in% cas_df$CAS)
 # AOP_crosswalk = read.csv(file_in(file.path(path_to_data, "Data/AOP_crosswalk.csv")))
 
 
@@ -298,10 +306,22 @@ table_SI2 <- WW_2016_forToxEval %>%
             .groups = "drop") %>%
   full_join(unique(select(ungroup(WW_2016_forToxEval), chnm, CAS))) %>%
   left_join(dplyr::select(cas_df, Class, CAS)) %>%
-  mutate(Class = factor(Class, c("Herbicide", "Fungicide", "Insecticide", "Deg - Herbicide", "Deg - Fungicide", "Deg - Insecticide"))) %>%
+  distinct() %>%
+  mutate(Class = factor(Class, c("Herbicide", "Fungicide", "Insecticide", "Deg - Herbicide", "Deg - Fungicide", "Deg - Insecticide", "Other"))) %>%
   arrange(Class, desc(Value_n_detects, Value_mean))
 
 names(table_SI2) <- gsub("Value_", "", names(table_SI2))
+
+no_pocis <- AllPOCIS_forToxEval %>%
+  group_by(CAS, chnm) %>%
+  summarize(detects = length(which(Value>0)), .groups = "drop") %>%
+  # mutate(CAS = paste0("'", CAS)) %>%
+  filter(!CAS %in% table_SI2$CAS)  %>%
+  left_join(distinct(select(cas_df, CAS, Class))) %>%
+  # mutate(detects = 0) %>%
+  rename(chemical_name = chnm,
+         class = Class) %>%
+  bind_rows(data.frame(CAS = "56611-54-2", chemical_name = "Didemethyl Hexazinone f", detects = 0, class = "Deg - Herbicide"))
 
 table_SI2 <- table_SI2 %>%
   mutate(chnm2 = tolower(chnm)) %>%
@@ -310,8 +330,18 @@ table_SI2 <- table_SI2 %>%
   select(class = Class, chemical_name = chnm, CAS, Rs, min_value = min,
          max_value = max, median_value = median, mean_value = mean,
          detects = n_detects) %>%
+  full_join(no_pocis) %>%
+  left_join(unique(select(WW_2016_forGLRIDB, MDL, CAS))) %>%
   mutate(detects = ifelse(is.na(detects), 0, detects),
-         CAS = paste0("'", CAS))
+         CAS = paste0("'", CAS),
+         class = factor(class, c("Herbicide", "Fungicide", "Insecticide",
+                                 "Deg - Herbicide", "Deg - Fungicide", "Deg - Insecticide", "Other"))) %>%
+  select(class, chemical_name, CAS, Rs, MDL, detects, everything())
+
+table_SI2$class[is.na(table_SI2$class)] <- cas_df$Class[match(tolower(table_SI2$chemical_name[is.na(table_SI2$class)]), cas_df$chnm)]
+
+table_SI2 <- table_SI2 %>%
+  arrange(class, desc(detects), desc(mean_value))
 
 write.csv(table_SI2, file.path(path_to_data, "SI tables", "chemical_summary_SI2.csv"), 
           row.names = F)
