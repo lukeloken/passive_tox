@@ -234,6 +234,8 @@ chemicals_combine <- chemicals_combine_rename %>%
 
 #Find number of EAR 'hits'
 chemicalSummary_EARHits <- chemicalSummary %>%
+  group_by(chnm, site) %>%
+  summarize(EAR = sum(EAR)) %>%
   filter(EAR>=.001) %>%
   dplyr::group_by(chnm, site) %>% 
   summarize(EAR = max(EAR, na.rm=T)) %>%
@@ -258,7 +260,7 @@ chemicals_combine[chemicals_combine$CAS %in% missing_TQ,]
 chemicals_combine<- full_join(chemicals_combine, chemicalSummary_EARHits) %>%
   full_join(chemicalSummary_TQHits) %>%
   select(Class, CAS, chnm, POCIS_Detect, Detections, EAR_Hits, TQ_Hits) %>%
-  arrange(Class, desc(Detections), desc(EAR_Hits), desc(TQ_Hits), desc(POCIS_Detect)) %>%
+  arrange(Class, desc(POCIS_Detect), desc(EAR_Hits), desc(TQ_Hits), desc(Detections)) %>%
   rename('EAR hits' = EAR_Hits,
          'TQ hits' = TQ_Hits,
          'Chemical Name' = chnm)
@@ -279,8 +281,8 @@ chemicals_combine$`Benchmark Available` <- 'No'
 chemicals_combine$`Benchmark Available`[chemicals_combine$CAS %in% pocischemsinbenchmarks$CAS] <- "Yes"
 
 chemicals_combine <- chemicals_combine %>%
-  rename(`Concentration Available` = Detections) %>%
-  rename(Detections = POCIS_Detect)
+  rename(`Concentration Available` = Detections, 
+         Detections = POCIS_Detect)
 
 write.csv(chemicals_combine, file = file_out(file.path(path_to_data, "Data/Chemicals_characterisitcs.csv")), row.names=F)
 
